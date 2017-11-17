@@ -1,29 +1,35 @@
 package server;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 
 public class Chat {
 
-    private Map<String, HashSet<Server>> members = new HashMap<>();
+    private String name;
+    private HashSet<Server> members = new HashSet<>();
 
 
-    public Map<String, HashSet<Server>> getMembers() {
+    public Chat(String roomName, Server server) {
+        this.members.add(server);
+        this.name = roomName;
+    }
+
+    public void addMember(Server memeber) {
+        this.members.add(memeber);
+    }
+
+    public HashSet<Server> getMembers() {
         return members;
     }
 
-    public void setMembers(Map<String, HashSet<Server>> members) {
+    public void setMembers(HashSet members) {
         this.members = members;
     }
 
-    public void init(String chatName, Server server) {
-        HashSet<Server> initList = new HashSet<>();
-        initList.add(server);
-        this.members.put(chatName, initList);
+    public String getName() {
+        return name;
     }
 
-    public void addMembersToChat(String chatName, Server memeberServer) {
-        members.get(chatName).add(memeberServer);
+    public void setName(String name) {
+        this.name = name;
     }
 }

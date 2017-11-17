@@ -9,10 +9,9 @@ public enum Option {
     TO("/to"),
     EXIT("/exit");
 
-    private static String name;
+    public String name;
 
-    public String getName() {
-        return name;
+    Option(String name) {
+        this.name = name;
     }
-
 }

@@ -5,19 +5,13 @@
  */
 package server;
 
+import javax.swing.*;
 import java.awt.*;
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.*;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 
 /**
  * @author Mariusz
@@ -31,7 +25,7 @@ public class Server implements Runnable {
     private static int port;
     private static JLabel nThreadsLabel;
     private static HashSet<Server> servers = new HashSet<>();
-    private static Chat chat = new Chat();
+    private static Map<String, Chat> availableRooms = new HashMap<>();
 
     public static void main(String[] args) throws IOException {
         ServerSocket ssock = null;
@@ -70,9 +64,9 @@ public class Server implements Runnable {
     private String login = null;
     private String sendTo = null;
     private String chatName = null;
-    private String memeberName;
-    private Server memeberServer = new Server();
+    private String memberName;
     private PrintWriter out = null;
+    private String roomName;
 
     private Server(Socket sock) throws IOException {
         this.sock = sock;
@@ -86,7 +80,7 @@ public class Server implements Runnable {
             BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
             mainLoop:
             for (; ; ) {
-                String s = null;
+                String s;
                 try {
                     s = in.readLine();
                 } catch (SocketException e) {
@@ -125,22 +119,26 @@ public class Server implements Runnable {
                         case "/chat":
                             if (st.hasMoreElements()) {
                                 chatName = st.nextToken();
-                                chat.init(chatName, this);
+                                Chat chat = new Chat(chatName, this);
+                                availableRooms.put(chatName, chat);
                             } else {
                                 out.println("Chat name cannot be empty!");
                             }
                             break;
                         case "/join":
                             if (st.hasMoreElements()) {
-                                chatName = st.nextToken();
-                                memeberName = st.nextToken();
+                                try {
+                                    chatName = st.nextToken();
+                                    memberName = st.nextToken();
+                                } catch (Exception e) {
+                                    out.println("chat name or member name can not be empty");
+                                }
 
-                                for (Server s : servers) {
-                                    if (s.login.equals(memeberName)) {
-                                        memeberServer = s;
+                                for (Server ser : servers) {
+                                    if (ser.login.equals(memberName)) {
+                                        availableRooms.get(chatName).addMember(ser);
                                     }
                                 }
-                                chat.addMembersToChat(chatName, memeberServer);
                             } else {
                                 out.println("Chat name cannot be empty!");
                             }
@@ -152,6 +150,13 @@ public class Server implements Runnable {
                                     server.out = new PrintWriter(server.sock.getOutputStream(), true);
                                     server.out.println("/ready " + login);
                                 }
+                            }
+                            break;
+                        case "/toRoom":
+                            roomName = st.nextToken();
+                            for (Server server : availableRooms.get(roomName).getMembers()) {
+                                server.out = new PrintWriter(server.sock.getOutputStream(), true);
+                                server.out.println("/ready " + login);
                             }
                             break;
                         case "/exit":
@@ -176,18 +181,29 @@ public class Server implements Runnable {
     }
 
     private void sendMessage(String message) throws IOException {
-        for (Server server : servers) {
-            if (sendTo != null && server.login.equals(sendTo)) {
-                server.out = new PrintWriter(server.sock.getOutputStream(), true);
-                synchronized (server) {
-                    server.out.println("/from " + login);
-                    server.out.println(message);
+        if (roomName != null && !roomName.isEmpty()) {
+            for (Server server : availableRooms.get(roomName).getMembers()) {
+                connectAndSend(server, message);
+            }
+        } else {
+            for (Server server : servers) {
+                if (sendTo != null && server.login.equals(sendTo)) {
+                    connectAndSend(server, message);
                 }
             }
+        }
+    }
+
+    private void connectAndSend(Server server, String message) throws IOException {
+        server.out = new PrintWriter(server.sock.getOutputStream(), true);
+        synchronized (server) {
+            server.out.println("/from " + (roomName.isEmpty() ? login : login + "/" + roomName));
+            server.out.println(message);
         }
     }
 
     private synchronized static void changeNThreads() {
         nThreadsLabel.setText("" + servers.size());
     }
+
 }
