@@ -1,0 +1,9 @@
+ /login uid password
+ /to uid
+ /who
+ /whoami
+ /list [pattern]
+ /register firstname lastname password
+ /unregister
+ /download fileid
+ /exit

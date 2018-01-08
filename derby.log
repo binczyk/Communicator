@@ -1,13 +1,13 @@
 ----------------------------------------------------------------
-Sat Nov 18 18:15:37 CET 2017:
- Uruchamianie wersji The Apache Software Foundation - Apache Derby - 10.11.1.2 - (1629631) systemu Derby: instancja a816c00e-015f-d020-e0f8-000003394848
-w katalogu bazy danych C:\Users\Student\Desktop\Communicator\db sun.misc.Launcher$AppClassLoader@18b4aac2 
+Tue Jan 09 00:23:03 CET 2018:
+ Uruchamianie wersji The Apache Software Foundation - Apache Derby - 10.11.1.2 - (1629631) systemu Derby: instancja a816c00e-0160-d815-9be7-000006daf048
+w katalogu bazy danych F:\mgr1\programowanie usług sieciowych\Communicator\db sun.misc.Launcher$AppClassLoader@18b4aac2 
 
 java.vendor=Oracle Corporation
-java.runtime.version=1.8.0_102-b14
-user.dir=C:\Users\Student\Desktop\Communicator
-os.name=Windows 7
+java.runtime.version=1.8.0_121-b13
+user.dir=F:\mgr1\programowanie usług sieciowych\Communicator
+os.name=Windows 8.1
 os.arch=amd64
-os.version=6.1
+os.version=6.3
 derby.system.home=null
 Uruchomiono program ładujący klasę bazy danych - derby.database.classpath=''
