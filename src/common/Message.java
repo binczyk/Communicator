@@ -8,7 +8,6 @@ package common;
 import java.sql.Timestamp;
 
 /**
- *
  * @author mariusz
  */
 public class Message {
@@ -17,6 +16,14 @@ public class Message {
     private int from;
     private int to;
     private String content;
+
+    public Message(Timestamp sent, Timestamp read, int from, int to, String content) {
+        this.sent = sent;
+        this.read = read;
+        this.from = from;
+        this.to = to;
+        this.content = content;
+    }
 
     public Timestamp getSent() {
         return sent;
@@ -36,13 +43,5 @@ public class Message {
 
     public String getContent() {
         return content;
-    }
-
-    public Message(Timestamp sent, Timestamp read, int from, int to, String content) {
-        this.sent = sent;
-        this.read = read;
-        this.from = from;
-        this.to = to;
-        this.content = content;
     }
 }

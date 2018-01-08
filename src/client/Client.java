@@ -5,67 +5,38 @@
  */
 package client;
 
-import java.awt.BorderLayout;
-import java.awt.Container;
-import java.awt.Dimension;
-import java.awt.HeadlessException;
-import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import javax.swing.JFrame;
+import server.Server;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.file.FileSystemException;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.StringTokenizer;
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import server.Server;
 
 /**
- *
  * @author Mariusz
  */
 public class Client extends JFrame implements ActionListener, KeyListener, WindowListener, Runnable {
 
-    public static final int UPLOADBUFFERSIZE = 64*1024;
+    public static final int UPLOADBUFFERSIZE = 64 * 1024;
 
     private static Client mainWindow = null;
     private static String uploadedFileName = null;
     private static File currentDirectory = null;
-    
-    private InetAddress addr;
-    private int port;
-    private String connectTo = null;
-
     private final JTextField input;
     private final ArrayList<String> history = new ArrayList<>();
-    private int historyPos = 0;
     private final JScrollPane scroller;
     private final JTextArea mainPanel;
     private final JButton buttonOk;
+    private InetAddress addr;
+    private int port;
+    private String connectTo = null;
+    private int historyPos = 0;
     private Socket sock = null;
     private PrintWriter out = null;
     private BufferedReader in = null;
@@ -101,6 +72,34 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
         Dimension dim = getToolkit().getScreenSize();
         Rectangle aBounds = getBounds();
         setLocation((dim.width - aBounds.width) / 2, (dim.height - aBounds.height) / 2);
+    }
+
+    public static void infoMessageBox(String msg) {
+        JOptionPane.showMessageDialog(null, msg, "Information", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    public static void errorMessageBox(String msg) {
+        JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    public static void main(String[] args) {
+
+        mainWindow = new Client("Communicator client");
+
+        try {
+            Properties props = new Properties();
+            props.load(new FileInputStream("Client.properties"));
+            mainWindow.addr = InetAddress.getByName(props.getProperty("host"));
+            mainWindow.port = Integer.parseInt(props.getProperty("port"));
+            mainWindow.connectTo = mainWindow.addr.getHostAddress() + ":" + mainWindow.port;
+            mainWindow.connect();
+        } catch (IOException e) {
+            errorMessageBox("While connecting to " + mainWindow.connectTo + "\n" + e);
+            System.exit(1);
+        }
+
+        new Thread(mainWindow).start();
+        mainWindow.setVisible(true);
     }
 
     @Override
@@ -167,7 +166,7 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
     @Override
     public void actionPerformed(ActionEvent ae) {
         String action = ae.getActionCommand();
-        switch(action) {
+        switch (action) {
             case "OK":
                 String s = input.getText();
                 if (s.equals("")) {
@@ -186,18 +185,18 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                 break;
             case "Upload":
                 JFileChooser fileChooser;
-                if(currentDirectory != null) { 
+                if (currentDirectory != null) {
                     fileChooser = new JFileChooser();
                 } else {
                     fileChooser = new JFileChooser(currentDirectory);
                 }
                 fileChooser.setDialogTitle("File to upload");
-                if(fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+                if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                     currentDirectory = fileChooser.getCurrentDirectory();
                     try {
                         File file = fileChooser.getSelectedFile();
                         long fileSize = file.length();
-                        if(fileSize > Server.UPLOADLIMIT) { 
+                        if (fileSize > Server.UPLOADLIMIT) {
                             printlnToPanel("→ File to upload too big");
                             break;
                         }
@@ -206,38 +205,40 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                         buttonOk.setEnabled(false);
                         out.println(cmd);
                         try {
-                            synchronized(mainWindow) {
+                            synchronized (mainWindow) {
                                 uploadedFileName = null;
                                 mainWindow.wait(1000);
                             }
-                            if(uploadedFileName == null) {
+                            if (uploadedFileName == null) {
                                 throw new Exception();
                             }
-                        } catch(Exception ex) {
+                        } catch (Exception ex) {
                             throw new FileSystemException("Server refused the upload ");
                         }
                         byte[] buffer = new byte[UPLOADBUFFERSIZE];
                         try (FileInputStream fis = new FileInputStream(file)) {
                             BufferedOutputStream bos = new BufferedOutputStream(sock.getOutputStream());
                             long bytesToSend = fileSize;
-                            while(bytesToSend > 0) {
+                            while (bytesToSend > 0) {
                                 long k = fis.read(buffer);
-                                if(k > bytesToSend) k = bytesToSend;
+                                if (k > bytesToSend) k = bytesToSend;
                                 printlnToPanel("→ uploading " + k + " bytes");
-                                bos.write(buffer, 0, (int) k); bos.flush();
+                                bos.write(buffer, 0, (int) k);
+                                bos.flush();
                                 bytesToSend -= k;
                             }
                         }
                         try {
-                            synchronized(mainWindow) {
+                            synchronized (mainWindow) {
                                 mainWindow.wait(5000);
                             }
-                            if(uploadedFileName != null) throw new Exception("Timeout during uploading the remote file " + uploadedFileName);
-                        } catch(Exception ex) {
+                            if (uploadedFileName != null)
+                                throw new Exception("Timeout during uploading the remote file " + uploadedFileName);
+                        } catch (Exception ex) {
                             errorMessageBox("Upload error: " + ex);
                         }
                         buttonOk.setEnabled(true);
-                    } catch(IOException ex) {
+                    } catch (IOException ex) {
                         errorMessageBox(ex.toString());
                         buttonOk.setEnabled(true);
                     }
@@ -257,7 +258,7 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
 
     @Override
     public void run() {
-        for (;;) {
+        for (; ; ) {
             try {
                 if (in == null) {
                     connect();
@@ -267,16 +268,16 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                     JOptionPane.showMessageDialog(null, "Connection closed by the server");
                     System.exit(0);
                 }
-                if(s.charAt(0) == '/') {
+                if (s.charAt(0) == '/') {
                     StringTokenizer st = new StringTokenizer(s);
                     String cmd = st.nextToken();
-                    switch(cmd) {
+                    switch (cmd) {
                         case "/from":
                             String from = st.hasMoreTokens() ? st.nextToken() : null;
                             printlnToPanel("← Message sent from " + from);
                             break;
                         case "/uploadready":
-                            synchronized(mainWindow) {
+                            synchronized (mainWindow) {
                                 uploadedFileName = st.hasMoreTokens() ? st.nextToken() : null;
                                 printlnToPanel("← Upload initiated, destination " + uploadedFileName);
                                 mainWindow.notify();
@@ -284,7 +285,7 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                             break;
                         case "/uploadcomplete":
                             String uuid = st.hasMoreTokens() ? st.nextToken() : null;
-                            synchronized(mainWindow) {
+                            synchronized (mainWindow) {
                                 uploadedFileName = null;
                                 mainWindow.notify();
                             }
@@ -292,7 +293,7 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                             break;
                         case "/uploaded":
                             int bytesUploaded = st.hasMoreTokens() ? Integer.parseInt(st.nextToken()) : 0;
-                            int bytesToUpload = st.hasMoreTokens() ? Integer.parseInt(st.nextToken()) : 0;                            
+                            int bytesToUpload = st.hasMoreTokens() ? Integer.parseInt(st.nextToken()) : 0;
                             printlnToPanel("← uploaded " + bytesUploaded + " bytes of " + bytesToUpload + " total");
                             break;
                         case "/downloadready":
@@ -300,23 +301,25 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                                 int bytesToRead = st.hasMoreTokens() ? Integer.parseInt(st.nextToken()) : 0;
                                 printlnToPanel("← to download " + bytesToRead + " bytes");
                                 JFileChooser fileChooser;
-                                if(currentDirectory != null) { 
+                                if (currentDirectory != null) {
                                     fileChooser = new JFileChooser();
                                 } else {
                                     fileChooser = new JFileChooser(currentDirectory);
                                 }
                                 fileChooser.setDialogTitle("Save to");
-                                if(fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+                                if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                                     File file = fileChooser.getSelectedFile();
                                     FileOutputStream fos = new FileOutputStream(file);
                                     byte[] buffer = new byte[UPLOADBUFFERSIZE];
                                     int n, bytesRead = 0;
                                     BufferedInputStream bis = new BufferedInputStream(sock.getInputStream());
-                                    while(bytesRead < bytesToRead) {
-                                        n = bytesToRead - bytesRead; if(n > buffer.length) n = buffer.length;
+                                    while (bytesRead < bytesToRead) {
+                                        n = bytesToRead - bytesRead;
+                                        if (n > buffer.length) n = buffer.length;
                                         n = bis.read(buffer, 0, n);
-                                        if(n > 0) {
-                                            fos.write(buffer, 0, n); fos.flush();
+                                        if (n > 0) {
+                                            fos.write(buffer, 0, n);
+                                            fos.flush();
                                             bytesRead += n;
                                             printlnToPanel("← downloaded " + bytesRead + " " + bytesToRead);
                                         }
@@ -324,13 +327,13 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                                     fos.close();
                                     printlnToPanel("← download complete to " + file + ", " + bytesToRead + " bytes");
                                 }
-                            } catch(IOException ex) {
+                            } catch (IOException ex) {
                                 errorMessageBox("Error during download:\n" + ex);
                             }
                             break;
                         case "/err":
                             StringBuilder errMsg = new StringBuilder("Server said: ");
-                            while(st.hasMoreTokens()) {
+                            while (st.hasMoreTokens()) {
                                 errMsg.append(st.nextToken(""));
                             }
                             errorMessageBox(errMsg.toString());
@@ -356,33 +359,5 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
         out = new PrintWriter(sock.getOutputStream(), true);
         in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
         setTitle("Connected to " + connectTo);
-    }
-
-    public static void infoMessageBox(String msg) {
-        JOptionPane.showMessageDialog(null, msg, "Information", JOptionPane.INFORMATION_MESSAGE);
-    }
-    
-    public static void errorMessageBox(String msg) {
-        JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.ERROR_MESSAGE);
-    }
-    
-    public static void main(String[] args) {
-
-        mainWindow = new Client("Communicator client");
-
-        try {
-            Properties props = new Properties();
-            props.load(new FileInputStream("Client.properties"));
-            mainWindow.addr = InetAddress.getByName(props.getProperty("host"));
-            mainWindow.port = Integer.parseInt(props.getProperty("port"));
-            mainWindow.connectTo = mainWindow.addr.getHostAddress() + ":" + mainWindow.port;
-            mainWindow.connect();
-        } catch (IOException e) {
-            errorMessageBox("While connecting to " + mainWindow.connectTo + "\n" + e);
-            System.exit(1);
-        }
-
-        new Thread(mainWindow).start();
-        mainWindow.setVisible(true);
     }
 }
