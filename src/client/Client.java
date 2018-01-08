@@ -5,12 +5,32 @@
  */
 package client;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.net.*;
-import java.io.*;
-import java.util.*;
+import java.awt.BorderLayout;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import javax.swing.JFrame;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Properties;
+import javax.swing.JButton;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
 
 /**
  *
@@ -18,10 +38,16 @@ import java.util.*;
  */
 public class Client extends JFrame implements ActionListener, KeyListener, WindowListener, Runnable {
 
-	private final JTextField tf;
-	private final JScrollPane skr;
-	private final JTextArea panelg;
-	private final JButton bok;
+	private InetAddress addr;
+	private int port;
+        private String connectTo = null;
+
+	private final JTextField input;
+        private final ArrayList<String> history = new ArrayList<> ();
+        private int historyPos = 0;
+	private final JScrollPane scroller;
+	private final JTextArea topPanel;
+	private final JButton buttonOk;
 	private PrintWriter out = null;
 	private BufferedReader in = null;
 
@@ -29,25 +55,25 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
 	 	super(title);
 		setSize(500,400);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		Container interior=getContentPane();
+		Container interior = getContentPane();
 		interior.setLayout(new BorderLayout());
-		panelg=new JTextArea();
-		panelg.setEditable(false);
-		skr=new JScrollPane(panelg);
-		interior.add(skr, BorderLayout.CENTER);
-		JPanel paneld=new JPanel();
-		paneld.setLayout(new BorderLayout());
-		tf=new JTextField();
-		paneld.add(tf, BorderLayout.CENTER);
-		bok=new JButton("OK");
-		bok.addActionListener(this);
-		tf.addKeyListener(this);
-		paneld.add (bok, BorderLayout.EAST);
-		interior.add (paneld, BorderLayout.SOUTH);
+		topPanel = new JTextArea();
+		topPanel.setEditable(false);
+		scroller = new JScrollPane(topPanel);
+		interior.add(scroller, BorderLayout.CENTER);
+		JPanel bottomPanel = new JPanel();
+		bottomPanel.setLayout(new BorderLayout());
+		input = new JTextField();
+		bottomPanel.add(input, BorderLayout.CENTER);
+		buttonOk = new JButton("OK");
+		buttonOk.addActionListener(this);
+		input.addKeyListener(this);
+		bottomPanel.add(buttonOk, BorderLayout.EAST);
+		interior.add(bottomPanel, BorderLayout.SOUTH);
 		addWindowListener(this);
 		Dimension dim = getToolkit().getScreenSize();
-		Rectangle abounds = getBounds();
-		setLocation((dim.width - abounds.width) / 2, (dim.height - abounds.height) / 2);
+		Rectangle aBounds = getBounds();
+		setLocation((dim.width - aBounds.width) / 2, (dim.height - aBounds.height) / 2);
 	}
 
         @Override
@@ -55,9 +81,24 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
 	
         @Override
 	public void keyPressed(KeyEvent e) {
-		if( e.getKeyCode() == KeyEvent.VK_ENTER ){
-			bok.doClick();
-		}
+            switch(e.getKeyCode()) {
+                case KeyEvent.VK_UP:                    
+                    if(historyPos > 0) {
+                        historyPos--;
+                        input.setText(history.get(historyPos));
+                    }
+                    break;
+                case KeyEvent.VK_DOWN:
+                    if(historyPos < history.size() - 1) {
+                        historyPos++;
+                        input.setText(history.get(historyPos));
+                    } else {
+                        historyPos = history.size();
+                        input.setText("");
+                    }    
+                    break;
+                case KeyEvent.VK_ENTER: buttonOk.doClick(); break;
+            }
 	}
 
         @Override
@@ -65,7 +106,7 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
 	
         @Override
 	public void windowOpened(WindowEvent e) {
-		tf.requestFocus();
+		input.requestFocus();
 	}
         @Override
 	public void windowClosed(WindowEvent e) {}
@@ -82,45 +123,60 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
 
         @Override
 	public void actionPerformed(ActionEvent ae) {
-		String s = tf.getText();
+		String s = input.getText();
 		if(s.equals("")) return;
 		try {
 			out.println(s);
+                        history.add(s);
+                        historyPos = history.size();
 		} catch(Exception e) { JOptionPane.showMessageDialog(null, e); System.exit(0); }
-		tf.setText(null);	
+		input.setText(null);	
 	}
 		
-        @Override
+    @Override
 	public void run() {
 		for(;;) {
 			try {
-				String s=in.readLine();
-				if(s == null) {
+                            if(in == null) connect();
+			    String s = in.readLine();
+			    if(s == null) {
 					JOptionPane.showMessageDialog(null, "Connection closed by the server");
 					System.exit(0);
-				}
-				panelg.append(s+"\n");
-				skr.getVerticalScrollBar().setValue(skr.getVerticalScrollBar().getMaximum());
-			} catch(Exception e) { JOptionPane.showMessageDialog(null, e); System.exit(0); }
+			    } 
+			    topPanel.append(s + "\n");
+                            scroller.getVerticalScrollBar().setValue(scroller.getVerticalScrollBar().getMaximum());
+			} catch(Exception e) {
+                            if(JOptionPane.showConfirmDialog(null, e + "\n\n" + "Reconnect?", "Reconnect", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                                in = null;
+                                continue;
+                            } else {
+                                System.exit(0);
+                            }
+                        }
 		}
 	}
 	
+        private void connect() throws IOException {
+	    setTitle("Connecting to " + connectTo);
+            Socket sock =  new Socket(addr.getHostName(), port);
+	    out = new PrintWriter(sock.getOutputStream(), true);
+	    in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+	    setTitle("Connected to " + connectTo);
+        }
+        
 	public static void main (String[] args) {
-		Client f=new Client("Communicator client");
+
+            Client f = new Client("Communicator client");
 		
-		String connectTo=null;
-		try{
+		try {
 			Properties props = new Properties();
 			props.load(new FileInputStream("Client.properties"));
-			InetAddress addr=InetAddress.getByName(props.getProperty("host"));
-			int port=Integer.parseInt(props.getProperty("port"));
-			connectTo=addr.getHostAddress()+":"+port;
-			Socket sock=new Socket (addr.getHostName(), port);
-			f.setTitle("Connected to "+connectTo);
-			f.out=new PrintWriter(sock.getOutputStream(), true);
-			f.in=new BufferedReader(new InputStreamReader(sock.getInputStream()));
-		} catch(Exception e){
-			JOptionPane.showMessageDialog(null, "While connecting to " + connectTo + "\n" + e);
+			f.addr = InetAddress.getByName(props.getProperty("host"));
+			f.port = Integer.parseInt(props.getProperty("port"));
+			f.connectTo = f.addr.getHostAddress() + ":" + f.port;
+                        f.connect();
+		} catch(IOException e){
+			JOptionPane.showMessageDialog(null, "While connecting to " + f.connectTo + "\n" + e);
 			System.exit(1);
 		}
 		
