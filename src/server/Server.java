@@ -6,6 +6,7 @@
 package server;
 
 import client.Client;
+import common.ChatRoom;
 import common.Message;
 import common.User;
 
@@ -123,6 +124,8 @@ public class Server implements Runnable {
 
     @Override
     public void run() {
+        User user;
+        Map<String, ChatRoom> chatRooms = new HashMap<>();
         servers.add(this);
         refreshView(false);
         try {
@@ -149,13 +152,13 @@ public class Server implements Runnable {
                             if (st.hasMoreTokens()) {
                                 try {
                                     int loginCandidate = Integer.parseInt(st.nextToken());
-                                    User u = db.getUser(loginCandidate);
+                                    user = db.getUser(loginCandidate);
                                     String passwordHash = User.makeHash(st.hasMoreTokens() ? st.nextToken() : "", "MD5");
-                                    if (!u.getPasswordHash().equals(passwordHash)) {
+                                    if (!user.getPasswordHash().equals(passwordHash)) {
                                         out.println("/err Login failed");
                                     } else {
                                         login = loginCandidate;
-                                        out.println("Welcome on the board, " + u);
+                                        out.println("Welcome on the board, " + user);
                                     }
                                 } catch (NumberFormatException ex) {
                                     out.println("/err Non-integer user id used");
@@ -170,11 +173,11 @@ public class Server implements Runnable {
                             break;
                         case "/to":
                             if (st.hasMoreTokens()) {
-                                try {
+                                try {//todo strategia, wysyłanie albo do usera albo do czat roomu
                                     int sendToCandidate = Integer.parseInt(st.nextToken());
-                                    User u = db.getUser(sendToCandidate);
+                                    user = db.getUser(sendToCandidate);
                                     sendTo = sendToCandidate;
-                                    out.println("You have set default recipient to " + u);
+                                    out.println("You have set default recipient to " + user);
                                 } catch (NumberFormatException ex) {
                                     out.println("/err Non-integer user id used");
                                 } catch (SQLException ex) {
@@ -216,8 +219,8 @@ public class Server implements Runnable {
                             try {
                                 Set<Integer> ids = db.getUserIds(pattern);
                                 for (Integer id : ids) {
-                                    User u = db.getUser(id);
-                                    out.println(id + ": " + u);
+                                    user = db.getUser(id);
+                                    out.println(id + ": " + user);
                                 }
                             } catch (SQLException ex) {
                                 out.println("/err " + Database.ERRMSG);
@@ -309,6 +312,30 @@ public class Server implements Runnable {
                                         out.println("/err Error during download " + fileName + "(" + ex + ")");
                                     }
                                 }
+                            }
+                            break;
+                        case "/newChat":
+                            if (st.hasMoreElements()) {
+                                String roomName = st.nextToken();
+                                chatRooms.put(roomName, new ChatRoom(roomName, login));
+                                out.println("New room created " + roomName);
+
+                            }
+                            break;
+                        case "/addChatMember":
+                            if (st.hasMoreElements()) {
+                                String roomName = st.nextToken();
+                                while (st.hasMoreElements()) {
+                                    int member = Integer.parseInt(st.nextToken());
+                                    chatRooms.get(roomName).addMember(member);
+                                    out.println("New member added " + member);
+                                }
+                            }
+                            break;
+                        case "/exitFromRoom":
+                            if (st.hasMoreElements()) {
+                                String roomName = st.nextToken();
+                                chatRooms.get(roomName).singOut(login);
                             }
                             break;
                         case "/help":

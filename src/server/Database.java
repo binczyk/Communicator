@@ -8,8 +8,11 @@ package server;
 import common.Message;
 import common.User;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.sql.*;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.Set;
 
 /**
@@ -20,6 +23,10 @@ public final class Database {
     public static final String ERRMSG = "Error with server DB";
 
     private Connection dbConn;
+
+    public Database() throws IOException, SQLException {
+        connect();
+    }
 
     public Database(Connection dbConn) throws SQLException {
         this(dbConn, null);
@@ -195,4 +202,26 @@ public final class Database {
         st.setInt(2, id);
         st.executeUpdate();
     }
+
+    private Database connect() throws IOException, SQLException {
+        String dbURL = null;
+        Connection dbConn = null;
+        String adminPassword = "";
+        try {
+            Properties props = new Properties();
+            props.load(new FileInputStream("Server.properties"));
+
+            Class.forName(props.getProperty("dbDriver")).newInstance();
+            dbURL = props.getProperty("dbURL");
+            dbConn = DriverManager.getConnection(dbURL);
+            boolean dbInit = Boolean.parseBoolean(props.getProperty("dbInit", "false"));
+            adminPassword = dbInit ? props.getProperty("adminPassword", "admin") : null;
+
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | SQLException e) {
+            e.printStackTrace();
+            System.exit(2);
+        }
+        return new Database(dbConn, adminPassword);
+    }
+
 }

@@ -6,4 +6,7 @@
  /register firstname lastname password
  /unregister
  /download fileid
+ /newChat chat_name
+ /addChatMember chat_name, uid1, uid2, uid3, ...
+ /exitFromRoom
  /exit
