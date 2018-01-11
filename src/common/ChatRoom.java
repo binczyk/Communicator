@@ -6,16 +6,12 @@ public class ChatRoom {
 
     private String roomName;
     private LinkedList<Integer> members = new LinkedList<>();
-    private int ower;
+    private int owner;
 
-    public ChatRoom(String roomName, int ower) {
+    public ChatRoom(String roomName, int owner) {
         this.roomName = roomName;
-        this.ower = ower;
-        addMember(ower);
-    }
-
-    public ChatRoom(String roomName) {
-        this.roomName = roomName;
+        this.owner = owner;
+        addMember(owner);
     }
 
     public String getRoomName() {
@@ -26,8 +22,14 @@ public class ChatRoom {
         return members;
     }
 
+    public int getOwner() {
+        return owner;
+    }
+
     public void addMember(int userId) {
-        members.add(userId);
+        if (!members.contains(userId)) {
+            members.add(userId);
+        }
     }
 
     public void singOut(int userId) {

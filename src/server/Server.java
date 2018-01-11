@@ -34,6 +34,7 @@ public class Server implements Runnable {
 
     private static int port;
     private static Set<Server> servers = new HashSet<>();
+    private Map<String, ChatRoom> chatRooms = new HashMap<>();
     private static JLabel nThreadsLabel;
     private static JLabel nRegisteredUsersLabel;
     private static Database db;
@@ -41,6 +42,7 @@ public class Server implements Runnable {
     private PrintWriter out;
     private int login = 0;
     private int sendTo = 0;
+    private String sendToRoom = new String();
 
     private Server(Socket sock) throws IOException {
         this.sock = sock;
@@ -125,7 +127,6 @@ public class Server implements Runnable {
     @Override
     public void run() {
         User user;
-        Map<String, ChatRoom> chatRooms = new HashMap<>();
         servers.add(this);
         refreshView(false);
         try {
@@ -159,6 +160,7 @@ public class Server implements Runnable {
                                     } else {
                                         login = loginCandidate;
                                         out.println("Welcome on the board, " + user);
+                                        getAvailableChats();
                                     }
                                 } catch (NumberFormatException ex) {
                                     out.println("/err Non-integer user id used");
@@ -173,16 +175,31 @@ public class Server implements Runnable {
                             break;
                         case "/to":
                             if (st.hasMoreTokens()) {
-                                try {//todo strategia, wysyłanie albo do usera albo do czat roomu
-                                    int sendToCandidate = Integer.parseInt(st.nextToken());
-                                    user = db.getUser(sendToCandidate);
-                                    sendTo = sendToCandidate;
-                                    out.println("You have set default recipient to " + user);
-                                } catch (NumberFormatException ex) {
-                                    out.println("/err Non-integer user id used");
-                                } catch (SQLException ex) {
-                                    out.println("/err No such user");
+                                String type = st.nextToken();
+                                if (type.equalsIgnoreCase("user") && st.hasMoreTokens()) {
+                                    try {
+                                        int sendToCandidate = Integer.parseInt(st.nextToken());
+                                        user = db.getUser(sendToCandidate);
+                                        sendTo = sendToCandidate;
+                                        sendToRoom = "";
+                                        out.println("You have set default recipient to " + user);
+                                    } catch (NumberFormatException ex) {
+                                        out.println("/err Non-integer user id used");
+                                    } catch (SQLException ex) {
+                                        out.println("/err No such user");
+                                    }
+                                } else if (type.equalsIgnoreCase("room") && st.hasMoreTokens()) {
+                                    String name = st.nextToken();
+                                    if (chatRooms.containsKey(name)) {
+                                        sendToRoom = name;
+                                        sendTo = 0;
+                                    } else {
+                                        out.println("/err No such room " + name);
+                                    }
+                                } else {
+                                    out.println("/err No such type or no name given");
                                 }
+
                             } else {
                                 sendTo = 0;
                                 out.println("Default recipient unset");
@@ -317,25 +334,64 @@ public class Server implements Runnable {
                         case "/newChat":
                             if (st.hasMoreElements()) {
                                 String roomName = st.nextToken();
-                                chatRooms.put(roomName, new ChatRoom(roomName, login));
-                                out.println("New room created " + roomName);
+                                if (!chatRooms.containsKey(roomName)) {
+                                    chatRooms.put(roomName, new ChatRoom(roomName, login));
+                                    out.println("New room created " + roomName);
+                                } else {
+                                    out.println("Room " + roomName + " already exists");
+                                }
 
                             }
                             break;
                         case "/addChatMember":
                             if (st.hasMoreElements()) {
                                 String roomName = st.nextToken();
-                                while (st.hasMoreElements()) {
-                                    int member = Integer.parseInt(st.nextToken());
-                                    chatRooms.get(roomName).addMember(member);
-                                    out.println("New member added " + member);
+                                if (chatRooms.containsKey(roomName) && chatRooms.get(roomName).getOwner() == login) {
+                                    while (st.hasMoreElements()) {
+                                        int member = Integer.parseInt(st.nextToken());
+                                        chatRooms.get(roomName).addMember(member);
+                                        out.println("New member added " + member);
+                                    }
+                                    updateRooms(roomName);
+                                } else {
+                                    out.println("Room " + roomName + " doesn't exist or you aren't a administrator");
                                 }
                             }
                             break;
-                        case "/exitFromRoom":
+                        case "/signOutFromRoom":
                             if (st.hasMoreElements()) {
                                 String roomName = st.nextToken();
                                 chatRooms.get(roomName).singOut(login);
+                                updateRooms(roomName);
+                            }
+                            break;
+                        case "/closeRoom":
+                            if (st.hasMoreElements()) {
+                                String roomName = st.nextToken();
+                                if (chatRooms.containsKey(roomName) && chatRooms.get(roomName).getOwner() == login) {
+                                    chatRooms.remove(roomName);
+                                    updateRooms(roomName);
+                                    out.println("Room " + roomName + " closed");
+                                } else {
+                                    out.println("Room " + roomName + " doesn't exist or you aren't a administrator");
+                                }
+                            }
+                            break;
+                        case "/showRooms":
+                            for (Map.Entry<String, ChatRoom> chatRoom : chatRooms.entrySet()) {
+                                out.println(chatRoom.getValue().getRoomName());
+                            }
+                            break;
+                        case "/showMembers":
+                            if (st.hasMoreTokens()) {
+                                String roomName = st.nextToken();
+                                for (int member : chatRooms.get(roomName).getMembers()) {
+                                    try {
+                                        out.println((member > 0 ? db.getUser(member) : "[not logged in]"));
+                                    } catch (SQLException e) {
+                                        out.print(s);
+                                    }
+                                }
                             }
                             break;
                         case "/help":
@@ -353,24 +409,10 @@ public class Server implements Runnable {
                 } else {
                     if (login > 0) {
                         if (sendTo > 0) {
-                            try {
-                                Message msg = new Message(new Timestamp(System.currentTimeMillis()), null, login, sendTo, s);
-                                int msgId = db.saveMessage(msg);
-                                int count = 0;
-                                for (Server server : servers) {
-                                    if (sendTo == server.login) {
-                                        synchronized (sock) {
-                                            server.out.println("/from " + login + "\n" + s);
-                                        }
-                                        count++;
-                                        if (count == 1) {
-                                            db.markMessageAsRead(msgId);
-                                        }
-                                    }
-                                }
-                                out.println("Message has sent to " + count + " recipient(s)");
-                            } catch (SQLException ex) {
-                                out.println("/err" + Database.ERRMSG);
+                            sendMessageToUser("/from", sendTo, s);
+                        } else if (!sendToRoom.isEmpty()) {
+                            for (int memberId : chatRooms.get(sendToRoom).getMembers()) {
+                                sendMessageToUser("/from ".concat(sendToRoom).concat(" "), memberId, s);
                             }
                         } else {
                             out.println("You should set default recipient");
@@ -389,4 +431,56 @@ public class Server implements Runnable {
         }
         refreshView(false);
     }
+
+    private void sendMessageToUser(String type, int sendToId, String message) {
+        try {
+            Message msg = new Message(new Timestamp(System.currentTimeMillis()), null, login, sendToId, message);
+            int msgId = db.saveMessage(msg);
+            int count = 0;
+            for (Server server : servers) {
+                if (sendToId == server.login) {
+                    synchronized (sock) {
+                        server.out.println(type.concat(String.valueOf(login)).concat("\n").concat(message));
+                    }
+                    count++;
+                    if (count == 1) {
+                        db.markMessageAsRead(msgId);
+                    }
+                }
+            }
+            out.println("Message has sent to " + count + " recipient(s)");
+        } catch (SQLException ex) {
+            out.println("/err" + Database.ERRMSG);
+        }
+    }
+
+    private void updateRooms(String roomName) {
+        if (chatRooms.containsKey(roomName)) {
+            for (int member : chatRooms.get(roomName).getMembers()) {
+                for (Server server : servers) {
+                    if (server.login == member) {
+                        server.chatRooms.put(roomName, chatRooms.get(roomName));
+                    }
+                }
+
+            }
+        } else {
+            for (Server server : servers) {
+                if (server.chatRooms.containsKey(roomName)) {
+                    server.chatRooms.remove(roomName);
+                }
+            }
+        }
+    }
+
+    private void getAvailableChats() {
+        for (Server server : servers) {
+            for (Map.Entry<String, ChatRoom> room : server.chatRooms.entrySet()) {
+                if (room.getValue().getMembers().contains(login)) {
+                    chatRooms.put(room.getKey(), room.getValue());
+                }
+            }
+        }
+    }
+
 }

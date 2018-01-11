@@ -1,5 +1,5 @@
  /login uid password
- /to uid
+ /to type(user, room) uid
  /who
  /whoami
  /list [pattern]
@@ -7,6 +7,6 @@
  /unregister
  /download fileid
  /newChat chat_name
- /addChatMember chat_name, uid1, uid2, uid3, ...
- /exitFromRoom
+ /addChatMember chat_name uid1 uid2 uid3 ...
+ /signOutFromRoom
  /exit

@@ -268,7 +268,7 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                     JOptionPane.showMessageDialog(null, "Connection closed by the server");
                     System.exit(0);
                 }
-                if (s.charAt(0) == '/') {
+                if (!s.isEmpty() && s.charAt(0) == '/') {
                     StringTokenizer st = new StringTokenizer(s);
                     String cmd = st.nextToken();
                     switch (cmd) {
