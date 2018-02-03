@@ -9,10 +9,9 @@ import client.Client;
 import common.ChatRoom;
 import common.Message;
 import common.User;
+import frontend.ServerVisualization;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -43,6 +42,7 @@ public class Server implements Runnable {
     private int login = 0;
     private int sendTo = 0;
     private String sendToRoom = new String();
+    private static ServerVisualization serverVisualization = new ServerVisualization();
 
     private Server(Socket sock) throws IOException {
         this.sock = sock;
@@ -84,24 +84,8 @@ public class Server implements Runnable {
 
         if (ssock == null) return;
 
-        JFrame mainWindow = new JFrame("Communicator server on port " + port);
-        mainWindow.setSize(300, 120);
-        mainWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        JPanel interior = new JPanel();
-        interior.setBorder(new EmptyBorder(10, 10, 10, 10));
-        interior.setLayout(new GridLayout(2, 2));
-        interior.add(new JLabel("Active threads", JLabel.LEFT));
-        nThreadsLabel = new JLabel("0", JLabel.RIGHT);
-        interior.add(nThreadsLabel);
-        interior.add(new JLabel("Registered users", JLabel.LEFT));
-        nRegisteredUsersLabel = new JLabel("", JLabel.RIGHT);
-        interior.add(nRegisteredUsersLabel);
-        refreshView(true);
-        Dimension dim = mainWindow.getToolkit().getScreenSize();
-        Rectangle abounds = mainWindow.getBounds();
-        mainWindow.setLocation((dim.width - abounds.width) / 2, (dim.height - abounds.height) / 2);
-        mainWindow.add(interior);
-        mainWindow.setVisible(true);
+        serverVisualization.init(port);
+        refreshView(serverVisualization, true);
 
         for (; ; ) {
             Socket sock = ssock.accept();
@@ -110,16 +94,17 @@ public class Server implements Runnable {
         }
     }
 
-    private static void refreshView(boolean withDB) {
+
+    private static void refreshView(ServerVisualization sv, boolean withDB) {
         if (servers != null) {
-            nThreadsLabel.setText("" + servers.size());
+            sv.refrashLabel(String.valueOf(servers.size()));
         }
         if (withDB && db != null) {
             try {
-                nRegisteredUsersLabel.setText("" + db.countUsers());
+                sv.refreshUserCount(String.valueOf(db.countUsers()));
             } catch (SQLException ex) {
                 System.out.println(ex);
-                nRegisteredUsersLabel.setText("n/a");
+                sv.refreshUserCount("n/a");
             }
         }
     }
@@ -128,7 +113,7 @@ public class Server implements Runnable {
     public void run() {
         User user;
         servers.add(this);
-        refreshView(false);
+        refreshView(serverVisualization, false);
         try {
             out = new PrintWriter(sock.getOutputStream(), true);
             BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
@@ -159,6 +144,7 @@ public class Server implements Runnable {
                                         out.println("/err Login failed");
                                     } else {
                                         login = loginCandidate;
+                                        out.println("/succesful");
                                         out.println("Welcome on the board, " + user);
                                         getAvailableChats();
                                     }
@@ -429,7 +415,7 @@ public class Server implements Runnable {
             sock.close();
         } catch (Exception e) {
         }
-        refreshView(false);
+        refreshView(serverVisualization, false);
     }
 
     private void sendMessageToUser(String type, int sendToId, String message) {

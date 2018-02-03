@@ -5,6 +5,7 @@
  */
 package client;
 
+import frontend.LoginPanel;
 import server.Server;
 
 import javax.swing.*;
@@ -40,6 +41,7 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
     private Socket sock = null;
     private PrintWriter out = null;
     private BufferedReader in = null;
+    private LoginPanel loginPanel;
 
     public Client(String title) {
         super(title);
@@ -99,7 +101,9 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
         }
 
         new Thread(mainWindow).start();
-        mainWindow.setVisible(true);
+
+        mainWindow.loginPanel = new LoginPanel(mainWindow.out);
+        mainWindow.loginPanel.init();
     }
 
     @Override
@@ -245,6 +249,7 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                 }
                 break;
         }
+
     }
 
     private void printlnToPanel(String s) {
@@ -267,6 +272,9 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                 if (s == null) {
                     JOptionPane.showMessageDialog(null, "Connection closed by the server");
                     System.exit(0);
+                } else if (s.equalsIgnoreCase("/succesful")) {
+                    mainWindow.setVisible(true);
+                    mainWindow.loginPanel.setVisible(false);
                 }
                 if (!s.isEmpty() && s.charAt(0) == '/') {
                     StringTokenizer st = new StringTokenizer(s);
