@@ -34,8 +34,6 @@ public class Server implements Runnable {
     private static int port;
     private static Set<Server> servers = new HashSet<>();
     private Map<String, ChatRoom> chatRooms = new HashMap<>();
-    private static JLabel nThreadsLabel;
-    private static JLabel nRegisteredUsersLabel;
     private static Database db;
     private Socket sock;
     private PrintWriter out;
@@ -111,7 +109,7 @@ public class Server implements Runnable {
 
     @Override
     public void run() {
-        User user;
+        User user = null;
         servers.add(this);
         refreshView(serverVisualization, false);
         try {
@@ -147,6 +145,8 @@ public class Server implements Runnable {
                                         out.println("/succesful");
                                         out.println("Welcome on the board, " + user);
                                         getAvailableChats();
+                                        fetchMessages();
+                                        fetchFriends();
                                     }
                                 } catch (NumberFormatException ex) {
                                     out.println("/err Non-integer user id used");
@@ -380,6 +380,21 @@ public class Server implements Runnable {
                                 }
                             }
                             break;
+                        case "/addFriend":
+                            if (st.hasMoreTokens()) {
+                                String nextToken = st.nextToken();
+                                int friendId = Integer.parseInt(nextToken);
+                                if (user != null) {
+                                    try {
+                                        db.addFriendship(login, friendId);
+                                        sendMessageToUser("/from", friendId, user.getFirstName().concat(" ").concat(user.getLastName())
+                                                .concat(" want to add you to friends list. Do you agree(yes, no)?"));
+                                    } catch (SQLException e1) {
+                                        e1.printStackTrace();
+                                    }
+                                }
+                            }
+                            break;
                         case "/help":
                             BufferedReader help = new BufferedReader(new FileReader("help.txt"));
                             String line;
@@ -408,14 +423,55 @@ public class Server implements Runnable {
                     }
                 }
             }
-        } catch (IOException e) {
+        } catch (
+                IOException e)
+
+        {
         }
         servers.remove(this);
-        try {
+        try
+
+        {
             sock.close();
-        } catch (Exception e) {
+        } catch (
+                Exception e)
+
+        {
         }
+
         refreshView(serverVisualization, false);
+
+    }
+
+    private void fetchFriends() throws SQLException {
+        boolean state = false;
+        String friends = "/friends ";
+        Set<Integer> friendIds = db.getFriendIds(login);
+
+        for (Integer id : friendIds) {
+            User user = db.getUser(id);
+            friends = friends.concat(String.valueOf(id).concat(" ").concat(user.getFirstName().concat(" ").concat(user.getLastName().concat(" - "))));
+            for (Server server : servers) {
+                if (server.login == id) {
+                    friends = friends.concat("Active;");
+                    state = true;
+                }
+            }
+            if (!state) {
+                friends = friends.concat("Inactive;");
+            }
+            state = false;
+        }
+        out.println(friends);
+    }
+
+    private List<Message> fetchMessages() throws SQLException {
+        List<Message> newMessages = db.getNotReadMessages(login);
+        for (Message msg : newMessages) {
+            out.println(msg.getContent());
+            db.markMessageAsRead(msg.getId());
+        }
+        return newMessages;
     }
 
     private void sendMessageToUser(String type, int sendToId, String message) {

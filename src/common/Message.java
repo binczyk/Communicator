@@ -11,6 +11,7 @@ import java.sql.Timestamp;
  * @author mariusz
  */
 public class Message {
+    private int id;
     private Timestamp sent;
     private Timestamp read;
     private int from;
@@ -23,6 +24,11 @@ public class Message {
         this.from = from;
         this.to = to;
         this.content = content;
+    }
+
+    public Message(int id, Timestamp sent, Timestamp read, int from, int to, String content) {
+        this(sent, read, from, to, content);
+        this.id = id;
     }
 
     public Timestamp getSent() {
@@ -44,4 +50,9 @@ public class Message {
     public String getContent() {
         return content;
     }
+
+    public int getId() {
+        return id;
+    }
 }
+;

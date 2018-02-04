@@ -5,6 +5,7 @@
  */
 package client;
 
+import frontend.FriendList;
 import frontend.LoginPanel;
 import server.Server;
 
@@ -42,6 +43,7 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
     private PrintWriter out = null;
     private BufferedReader in = null;
     private LoginPanel loginPanel;
+    private FriendList friendList;
 
     public Client(String title) {
         super(title);
@@ -273,8 +275,11 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                     JOptionPane.showMessageDialog(null, "Connection closed by the server");
                     System.exit(0);
                 } else if (s.equalsIgnoreCase("/succesful")) {
-                    mainWindow.setVisible(true);
+                    mainWindow.setVisible(false);
                     mainWindow.loginPanel.setVisible(false);
+                    friendList = new FriendList();
+                    friendList.init();
+                    mainWindow.setVisible(true);
                 }
                 if (!s.isEmpty() && s.charAt(0) == '/') {
                     StringTokenizer st = new StringTokenizer(s);
@@ -337,6 +342,11 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                                 }
                             } catch (IOException ex) {
                                 errorMessageBox("Error during download:\n" + ex);
+                            }
+                            break;
+                        case "/friends":
+                            if (!s.substring("/friends".length(), s.length()).trim().isEmpty()) {
+                                friendList.addFriends(s.substring("/friends ".length(), s.length() - 1));
                             }
                             break;
                         case "/err":

@@ -11,9 +11,7 @@ import common.User;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.*;
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author mariusz
@@ -53,8 +51,7 @@ public final class Database {
             }
             st.execute("CREATE TABLE \"friend\" (" +
                     "id1 INTEGER NOT NULL," +
-                    "id2 INTEGER NOT NULL," +
-                    "CONSTRAINT friend_primary_key PRIMARY KEY (id1, id2)" +
+                    "id2 INTEGER NOT NULL" +
                     ")");
             addUser(new User("Admin", "Istrator", adminPassword, "MD5"));
 //            Set<Integer> ids = getUserIds("%");
@@ -159,8 +156,10 @@ public final class Database {
 
     public Set<Integer> getFriendIds(int id1) throws SQLException {
         Set<Integer> friendIds = new HashSet<>();
-        PreparedStatement st = dbConn.prepareStatement("SELECT id2 FROM \"friend\" WHERE id1=?");
+        PreparedStatement st = dbConn.prepareStatement("SELECT id2 FROM \"friend\" WHERE id1=? " +
+                "and ID2 in (select ID1 from \"friend\" WHERE ID2 = ?)");
         st.setInt(1, id1);
+        st.setInt(2, id1);
         ResultSet rs = st.executeQuery();
         while (rs.next()) {
             friendIds.add(rs.getInt(1));
@@ -201,6 +200,18 @@ public final class Database {
         st.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
         st.setInt(2, id);
         st.executeUpdate();
+    }
+
+    public List<Message> getNotReadMessages(int id) throws SQLException {
+        List<Message> notRead = new ArrayList<>();
+        PreparedStatement st = dbConn.prepareStatement("SELECT * FROM \"message\" WHERE MSGTO=? and MSGREAD is null order by MSGSENT");
+        st.setInt(1, id);
+        ResultSet rs = st.executeQuery();
+        while (rs.next()) {
+            notRead.add(new Message(rs.getInt(1), rs.getTimestamp(2), rs.getTimestamp(3),
+                    rs.getInt(4), rs.getInt(5), rs.getString(6)));
+        }
+        return notRead;
     }
 
     private Database connect() throws IOException, SQLException {
