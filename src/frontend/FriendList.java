@@ -2,6 +2,11 @@ package frontend;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.PrintWriter;
+import java.util.List;
+import java.util.StringTokenizer;
 
 public class FriendList extends JFrame {
     private JList<String> friendList;
@@ -14,6 +19,33 @@ public class FriendList extends JFrame {
 // >>> IMPORTANT!! <<<
 // DO NOT EDIT OR ADD ANY CODE HERE!
         $$$setupUI$$$();
+    }
+
+    public FriendList(PrintWriter printWriterOut) {
+        chatButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                List<String> selectedValuesList = friendList.getSelectedValuesList();
+                StringTokenizer stringTokenizer;
+                String members;
+                if (selectedValuesList.size() > 1) {
+                    String chatName = getChatName();
+                    members = chatName.concat(" ");
+                    printWriterOut.println("/newChat " + chatName);
+                    for (String user : selectedValuesList) {
+                        stringTokenizer = new StringTokenizer(user);
+                        members += stringTokenizer.nextToken().concat(" ");
+                    }
+                    printWriterOut.println("/addChatMember " + members);
+                    printWriterOut.println("/to room " + chatName);
+                } else if (selectedValuesList.size() == 1) {
+                    stringTokenizer = new StringTokenizer(selectedValuesList.get(0));
+                    printWriterOut.println("/to user " + Integer.parseInt(stringTokenizer.nextToken()));
+                } else {
+                    JOptionPane.showMessageDialog(null, "No user seleced");
+                }
+            }
+        });
     }
 
     public void init() {
@@ -40,6 +72,18 @@ public class FriendList extends JFrame {
         chatButton = new JButton();
         friendList = new JList();
         friendScroll = new JScrollPane();
+    }
+
+    private String getChatName() {
+        JPanel newChatPanel = new JPanel();
+        JLabel chatLabel = new JLabel("Podaj nazwę chatu:");
+        JTextField chatName = new JTextField();
+        newChatPanel.setLayout(new BorderLayout());
+        newChatPanel.add(chatLabel, BorderLayout.NORTH);
+        newChatPanel.add(chatName, BorderLayout.SOUTH);
+        JOptionPane.showConfirmDialog(null, newChatPanel, "Nowy chat",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        return chatName.getText();
     }
 
     /**

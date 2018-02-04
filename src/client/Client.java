@@ -277,7 +277,7 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                 } else if (s.equalsIgnoreCase("/succesful")) {
                     mainWindow.setVisible(false);
                     mainWindow.loginPanel.setVisible(false);
-                    friendList = new FriendList();
+                    friendList = new FriendList(out);
                     friendList.init();
                     mainWindow.setVisible(true);
                 }
