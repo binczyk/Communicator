@@ -254,6 +254,23 @@ public final class Database {
         return rs.getInt(1);
     }
 
+    public void removeChat(String chatName) throws SQLException {
+        for (Integer memeberId : findChatByName(chatName.trim()).getMembers()) {
+            removeMember(memeberId, chatName);
+        }
+        PreparedStatement st = dbConn.prepareStatement("DELETE FROM \"chat\" where name = (?)");
+        st.setString(1, chatName.trim());
+        st.executeUpdate();
+    }
+
+    public void removeMember(int memberID, String chatName) throws SQLException {
+        PreparedStatement st = dbConn.prepareStatement("DELETE FROM \"members\" where user_id = ?" +
+                " AND chat_id in (select id from \"chat\" where name = ?)");
+        st.setInt(1, memberID);
+        st.setString(2, chatName);
+        st.executeUpdate();
+    }
+
     public ChatRoom findChatByName(String name) throws SQLException {
         PreparedStatement st = dbConn.prepareStatement("SELECT id, name, user_id " +
                 "FROM \"chat\" left join \"members\" on chat_id = id and is_admin = 1 WHERE NAME = ?");
@@ -314,7 +331,7 @@ public final class Database {
     public List<ChatRoom> findChatByUserId(int login) throws SQLException {
         List<ChatRoom> chatRooms = new ArrayList<>();
 
-        PreparedStatement st = dbConn.prepareStatement("SELECT * FROM \"chat\" " +
+        PreparedStatement st = dbConn.prepareStatement("SELECT id, name, user_id FROM \"chat\" " +
                 "left join \"members\" on chat_id = id WHERE user_id = ? order by name ASC");
         st.setInt(1, login);
         ResultSet rs = st.executeQuery();

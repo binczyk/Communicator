@@ -39,7 +39,7 @@ public class ChatRoom {
     }
 
     public void singOut(int userId) {
-        members.remove(userId);
+        members.remove(Integer.valueOf(userId));
     }
 
     public int getId() {

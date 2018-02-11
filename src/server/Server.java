@@ -352,7 +352,9 @@ public class Server implements Runnable {
                             if (st.hasMoreElements()) {
                                 String roomName = st.nextToken();
                                 chatRooms.get(roomName).singOut(login);
+                                db.removeMember(login, roomName);
                                 updateRooms(roomName);
+                                notifyFriends();
                             }
                             break;
                         case "/closeRoom":
@@ -360,7 +362,9 @@ public class Server implements Runnable {
                                 String roomName = st.nextToken();
                                 if (chatRooms.containsKey(roomName) && chatRooms.get(roomName).getOwner() == login) {
                                     chatRooms.remove(roomName);
+                                    db.removeChat(roomName);
                                     updateRooms(roomName);
+                                    notifyFriends();
                                     out.println("Room " + roomName + " closed");
                                 } else {
                                     out.println("Room " + roomName + " doesn't exist or you aren't a administrator");
