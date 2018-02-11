@@ -325,7 +325,6 @@ public class Server implements Runnable {
                                     chatRooms.put(roomName, new ChatRoom(roomName, login));
                                     db.addChat(roomName, login);
                                     out.println("New room created " + roomName);
-                                    notifyFriends();
                                 } else {
                                     out.println("Room " + roomName + " already exists");
                                 }
@@ -334,13 +333,14 @@ public class Server implements Runnable {
                             break;
                         case "/addChatMember":
                             if (st.hasMoreElements()) {
-                                String roomName = st.nextToken();
+                                String roomName = getRoomName(st);
                                 if (chatRooms.containsKey(roomName) && chatRooms.get(roomName).getOwner() == login) {
                                     while (st.hasMoreElements()) {
                                         int member = Integer.parseInt(st.nextToken());
                                         chatRooms.get(roomName).addMember(member);
                                         db.addMember(roomName, member, false);
                                         out.println("New member added " + member);
+                                        notifyFriends();
                                     }
                                     updateRooms(roomName);
                                 } else {
@@ -466,9 +466,14 @@ public class Server implements Runnable {
         StringBuilder roomName = new StringBuilder();
         while (st.hasMoreTokens()) {
             roomName.append(st.nextToken());
+            if (roomName.toString().contains("</>")) {
+                int indexOfEnd = roomName.indexOf("</>");
+                roomName.replace(indexOfEnd, indexOfEnd + 3, "");
+                break;
+            }
             roomName.append(" ");
         }
-        return roomName.toString();
+        return roomName.toString().trim();
     }
 
     private void notifyFriends() throws SQLException {

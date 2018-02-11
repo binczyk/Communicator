@@ -33,16 +33,16 @@ public class FriendList extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 List<String> selectedValuesList = friendList.getSelectedValuesList();
                 StringTokenizer stringTokenizer;
-                String members;
+                String addNewMembers;
                 if (selectedValuesList.size() > 1) {
                     String chatName = getChatName();
-                    members = chatName.concat(" ");
+                    addNewMembers = chatName.concat("</> ");
                     printWriterOut.println("/newChat " + chatName);
                     for (String user : selectedValuesList) {
                         stringTokenizer = new StringTokenizer(user);
-                        members += stringTokenizer.nextToken().concat(" ");
+                        addNewMembers += stringTokenizer.nextToken().concat(" ");
                     }
-                    printWriterOut.println("/addChatMember " + members);
+                    printWriterOut.println("/addChatMember " + addNewMembers);
                     printWriterOut.println("/to room " + chatName);
                     ChatView chatView = new ChatView(printWriterOut, userID);
                     chatView.init(chatName);
