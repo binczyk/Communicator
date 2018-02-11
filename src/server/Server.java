@@ -176,7 +176,7 @@ public class Server implements Runnable {
                                         out.println("/err No such user");
                                     }
                                 } else if (type.equalsIgnoreCase("room") && st.hasMoreTokens()) {
-                                    String name = st.nextToken();
+                                    String name = getRoomName(st);
                                     if (chatRooms.containsKey(name)) {
                                         sendToRoom = name;
                                         sendTo = 0;
@@ -320,11 +320,12 @@ public class Server implements Runnable {
                             break;
                         case "/newChat":
                             if (st.hasMoreElements()) {
-                                String roomName = st.nextToken();
+                                String roomName = getRoomName(st);
                                 if (!chatRooms.containsKey(roomName)) {
                                     chatRooms.put(roomName, new ChatRoom(roomName, login));
                                     db.addChat(roomName, login);
                                     out.println("New room created " + roomName);
+                                    notifyFriends();
                                 } else {
                                     out.println("Room " + roomName + " already exists");
                                 }
@@ -459,6 +460,15 @@ public class Server implements Runnable {
 
         refreshView(serverVisualization, false);
 
+    }
+
+    private String getRoomName(StringTokenizer st) {
+        StringBuilder roomName = new StringBuilder();
+        while (st.hasMoreTokens()) {
+            roomName.append(st.nextToken());
+            roomName.append(" ");
+        }
+        return roomName.toString();
     }
 
     private void notifyFriends() throws SQLException {
