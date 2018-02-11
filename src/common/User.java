@@ -13,9 +13,11 @@ import java.security.NoSuchAlgorithmException;
  */
 public class User {
 
-    private final String firstName;
-    private final String lastName;
-    private final String passwordHash;
+    private int id;
+    private String firstName;
+    private String lastName;
+    private String passwordHash;
+    private boolean isActive;
 
     public User(String firstName, String lastName, String passwordHash) {
         this.firstName = firstName;
@@ -27,6 +29,13 @@ public class User {
         this.firstName = firstName;
         this.lastName = lastName;
         this.passwordHash = makeHash(password, algName);
+    }
+
+    public User(int id, String firstName, String lastName, boolean isActive) {
+        this.id = id;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.isActive = isActive;
     }
 
     public static String makeHash(String plain, String algName) {
@@ -53,6 +62,14 @@ public class User {
 
     public String getPasswordHash() {
         return passwordHash;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public int getId() {
+        return id;
     }
 
     @Override

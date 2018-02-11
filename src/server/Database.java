@@ -44,6 +44,7 @@ public final class Database {
                     "firstName VARCHAR(64) NOT NULL," +
                     "lastName VARCHAR(64) NOT NULL," +
                     "passwordHash VARCHAR(64) NOT NULL," +
+                    "is_active INTEGER CHECK (is_active in (1,0)) DEFAULT 0," +
                     "CONSTRAINT user_primary_key PRIMARY KEY (id)" +
                     ")");
             try {
@@ -175,17 +176,16 @@ public final class Database {
         return rs.getInt(1) > 0;
     }
 
-    public Set<Integer> getFriendIds(int id1) throws SQLException {
-        Set<Integer> friendIds = new HashSet<>();
-        PreparedStatement st = dbConn.prepareStatement("SELECT id2 FROM \"friend\" WHERE id1=? " +
-                "and ID2 in (select ID1 from \"friend\" WHERE ID2 = ?)");
-        st.setInt(1, id1);
-        st.setInt(2, id1);
+    public List<User> getFriends(int userId) throws SQLException {
+        List<User> friends = new ArrayList<>();
+        PreparedStatement st = dbConn.prepareStatement("SELECT id, FIRSTNAME, LASTNAME, is_active\n" +
+                "FROM \"user\" WHERE id IN (SELECT ID1 FROM \"friend\" WHERE ID2 = ?) order by ID asc");
+        st.setInt(1, userId);
         ResultSet rs = st.executeQuery();
         while (rs.next()) {
-            friendIds.add(rs.getInt(1));
+            friends.add(new User(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getInt(4) == 0 ? false : true));
         }
-        return friendIds;
+        return friends;
     }
 
     public int saveMessage(Message msg) throws SQLException {
@@ -220,6 +220,13 @@ public final class Database {
     public void markMessageAsRead(int id) throws SQLException {
         PreparedStatement st = dbConn.prepareStatement("UPDATE \"message\" SET msgread=? WHERE id=?");
         st.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
+        st.setInt(2, id);
+        st.executeUpdate();
+    }
+
+    public void setActive(int id, boolean isActive) throws SQLException {
+        PreparedStatement st = dbConn.prepareStatement("UPDATE \"user\" SET is_active=? WHERE id=?");
+        st.setInt(1, isActive ? 1 : 0);
         st.setInt(2, id);
         st.executeUpdate();
     }
@@ -294,7 +301,7 @@ public final class Database {
         LinkedList<Integer> userIds = new LinkedList<>();
 
         PreparedStatement st = dbConn.prepareStatement("SELECT user_id FROM \"chat\" " +
-                "left join \"members\" on chat_id = id WHERE name = ?");
+                "left join \"members\" on chat_id = id WHERE name = ? order by name asc");
         st.setString(1, name);
         ResultSet rs = st.executeQuery();
         while (rs.next()) {
@@ -308,7 +315,7 @@ public final class Database {
         List<ChatRoom> chatRooms = new ArrayList<>();
 
         PreparedStatement st = dbConn.prepareStatement("SELECT * FROM \"chat\" " +
-                "left join \"members\" on chat_id = id WHERE user_id = ?");
+                "left join \"members\" on chat_id = id WHERE user_id = ? order by name ASC");
         st.setInt(1, login);
         ResultSet rs = st.executeQuery();
         while (rs.next()) {

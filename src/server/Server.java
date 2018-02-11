@@ -144,9 +144,10 @@ public class Server implements Runnable {
                                         login = loginCandidate;
                                         out.println("/succesful");
                                         out.println("Welcome on the board, " + user);
-                                        getAvailableChats();
-                                        fetchFriends();
+                                        db.setActive(login, true);
+                                        updateFriendList();
                                         fetchMessages();
+                                        notifyFriends();
                                     }
                                 } catch (NumberFormatException ex) {
                                     out.println("/err Non-integer user id used");
@@ -416,6 +417,7 @@ public class Server implements Runnable {
                             }
                             break;
                         case "/exit":
+                            db.setActive(login, false);
                             break mainLoop;
                         default:
                             out.println("/err Unknown command " + cmd);
@@ -431,6 +433,7 @@ public class Server implements Runnable {
                         } else {
                             out.println("You should set default recipient");
                         }
+                        db.setActive(login, false);
                     } else {
                         out.println("You have to log in first");
                     }
@@ -444,9 +447,9 @@ public class Server implements Runnable {
             e.printStackTrace();
         }
         servers.remove(this);
-        try
-
-        {
+        try {
+            db.setActive(login, false);
+            notifyFriends();
             sock.close();
         } catch (
                 Exception e)
@@ -458,26 +461,45 @@ public class Server implements Runnable {
 
     }
 
-    private void fetchFriends() throws SQLException {
-        boolean state = false;
-        String friends = "/friends ";
-        Set<Integer> friendIds = db.getFriendIds(login);
-
-        for (Integer id : friendIds) {
-            User user = db.getUser(id);
-            friends = friends.concat(String.valueOf(id).concat(" ").concat(user.getFirstName().concat(" ").concat(user.getLastName().concat(" - "))));
-            for (Server server : servers) {
-                if (server.login == id) {
-                    friends = friends.concat("Active;");
-                    state = true;
-                }
-            }
-            if (!state) {
-                friends = friends.concat("Inactive;");
-            }
-            state = false;
+    private void notifyFriends() throws SQLException {
+        for (Server server : servers) {
+            server.updateFriendList();
         }
-        out.println(friends);
+    }
+
+    private String fetchFriends() throws SQLException {
+        StringBuilder sb = new StringBuilder();
+        for (User user : db.getFriends(login)) {
+            sb.append(String.valueOf(user.getId()));
+            sb.append(" ");
+            sb.append(user.getFirstName());
+            sb.append(" ");
+            sb.append(user.getLastName());
+            sb.append(" ");
+            sb.append(user.isActive() ? "Active;" : "Inactive;");
+        }
+        return sb.toString().trim();
+    }
+
+    private String fetchChats() {
+        StringBuilder sb = new StringBuilder();
+        try {
+            for (ChatRoom chatRoom : db.findChatByUserId(login)) {
+                chatRooms.put(chatRoom.getRoomName(), chatRoom);
+                sb.append(chatRoom.getRoomName().concat("(chat);"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return sb.toString().trim();
+    }
+
+    private void updateFriendList() throws SQLException {
+        StringBuilder builder = new StringBuilder("/friends ");
+        builder.append(fetchChats());
+        builder.append(fetchFriends());
+        out.println(builder.toString());
+
     }
 
     private List<Message> fetchMessages() throws SQLException {
@@ -529,19 +551,6 @@ public class Server implements Runnable {
                 }
             }
         }
-    }
-
-    private void getAvailableChats() {
-        StringBuilder sb = new StringBuilder("/friends ");
-        try {
-            for (ChatRoom chatRoom : db.findChatByUserId(login)) {
-                chatRooms.put(chatRoom.getRoomName(), chatRoom);
-                sb.append(chatRoom.getRoomName().concat("(chat);"));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        out.println(sb.toString().trim());
     }
 
 }
