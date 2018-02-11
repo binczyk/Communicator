@@ -5,6 +5,7 @@
  */
 package server;
 
+import common.ChatRoom;
 import common.Message;
 import common.User;
 
@@ -69,7 +70,27 @@ public final class Database {
                     "msgfrom INTEGER NOT NULL," +
                     "msgto INTEGER NOT NULL," +
                     "content VARCHAR(1024)," +
+                    "receiver VARCHAR(1024) CHECK (receiver in ('user','chat'))," +
                     "CONSTRAINT message_primary_key PRIMARY KEY (id)" +
+                    ")");
+            try {
+                st.execute("DROP TABLE \"chat\"");
+            } catch (SQLException e) {
+            }
+            st.execute("CREATE TABLE \"chat\" (" +
+                    "id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1)," +
+                    "name VARCHAR(1024)," +
+                    "CONSTRAINT chat_pk PRIMARY KEY (id)" +
+                    ")");
+            try {
+                st.execute("DROP TABLE \"members\"");
+            } catch (SQLException e) {
+            }
+            st.execute("CREATE TABLE \"members\" (" +
+                    "chat_id INTEGER NOT NULL," +
+                    "user_id INTEGER NOT NULL, " +
+                    "is_admin INTEGER, " +
+                    "CONSTRAINT chat_user_uq UNIQUE (chat_id, user_id)" +
                     ")");
         }
     }
@@ -168,12 +189,13 @@ public final class Database {
     }
 
     public int saveMessage(Message msg) throws SQLException {
-        PreparedStatement st = dbConn.prepareStatement("INSERT INTO \"message\" (msgsent, msgread, msgfrom, msgto, content) VALUES (?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+        PreparedStatement st = dbConn.prepareStatement("INSERT INTO \"message\" (msgsent, msgread, msgfrom, msgto, content, receiver) VALUES (?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
         st.setTimestamp(1, msg.getSent());
         st.setTimestamp(2, msg.getRead());
         st.setInt(3, msg.getFrom());
         st.setInt(4, msg.getTo());
         st.setString(5, msg.getContent());
+        st.setString(6, msg.getType());
         st.executeUpdate();
         ResultSet rs = st.getGeneratedKeys();
         rs.next();
@@ -202,10 +224,11 @@ public final class Database {
         st.executeUpdate();
     }
 
-    public List<Message> getNotReadMessages(int id) throws SQLException {
+    public List<Message> getNotReadMessages(int id, String receiver) throws SQLException {
         List<Message> notRead = new ArrayList<>();
-        PreparedStatement st = dbConn.prepareStatement("SELECT * FROM \"message\" WHERE MSGTO=? and MSGREAD is null order by MSGSENT");
+        PreparedStatement st = dbConn.prepareStatement("SELECT * FROM \"message\" WHERE MSGTO=? and MSGREAD is null and receiver = ? order by MSGSENT");
         st.setInt(1, id);
+        st.setString(2, receiver);
         ResultSet rs = st.executeQuery();
         while (rs.next()) {
             notRead.add(new Message(rs.getInt(1), rs.getTimestamp(2), rs.getTimestamp(3),
@@ -213,6 +236,38 @@ public final class Database {
         }
         return notRead;
     }
+
+    public int addChat(String chatName, int owner_id) throws SQLException {
+        PreparedStatement st = dbConn.prepareStatement("INSERT INTO \"chat\" (name) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+        st.setString(1, chatName.trim());
+        st.executeUpdate();
+        ResultSet rs = st.getGeneratedKeys();
+        rs.next();
+        addMember(chatName, owner_id, true);
+        return rs.getInt(1);
+    }
+
+    public ChatRoom findChatByName(String name) throws SQLException {
+        PreparedStatement st = dbConn.prepareStatement("SELECT id, name, user_id " +
+                "FROM \"chat\" left join \"members\" on chat_id = id and is_admin = 1 WHERE NAME = ?");
+        st.setString(1, name);
+        ResultSet rs = st.executeQuery();
+        rs.next();
+
+        return new ChatRoom(rs.getInt(1), rs.getString(2), rs.getInt(3));
+    }
+
+    public void addMember(String chatName, Integer usersId, boolean is_admin) throws SQLException {
+        ChatRoom chatRoom = findChatByName(chatName);
+        PreparedStatement st = dbConn.prepareStatement("INSERT INTO \"members\" (chat_id, user_id, is_admin) VALUES (?,?,?)", Statement.RETURN_GENERATED_KEYS);
+        st.setInt(1, chatRoom.getId());
+        st.setInt(2, usersId);
+        st.setInt(3, is_admin ? 1 : 0);
+        st.executeUpdate();
+        ResultSet rs = st.getGeneratedKeys();
+        rs.next();
+    }
+
 
     private Database connect() throws IOException, SQLException {
         String dbURL = null;
@@ -235,4 +290,35 @@ public final class Database {
         return new Database(dbConn, adminPassword);
     }
 
+    private LinkedList<Integer> findMembersByChatName(String name) throws SQLException {
+        LinkedList<Integer> userIds = new LinkedList<>();
+
+        PreparedStatement st = dbConn.prepareStatement("SELECT user_id FROM \"chat\" " +
+                "left join \"members\" on chat_id = id WHERE name = ?");
+        st.setString(1, name);
+        ResultSet rs = st.executeQuery();
+        while (rs.next()) {
+            userIds.add(rs.getInt(1));
+        }
+
+        return userIds;
+    }
+
+    public List<ChatRoom> findChatByUserId(int login) throws SQLException {
+        List<ChatRoom> chatRooms = new ArrayList<>();
+
+        PreparedStatement st = dbConn.prepareStatement("SELECT * FROM \"chat\" " +
+                "left join \"members\" on chat_id = id WHERE user_id = ?");
+        st.setInt(1, login);
+        ResultSet rs = st.executeQuery();
+        while (rs.next()) {
+            chatRooms.add(new ChatRoom(rs.getInt(1), rs.getString(2), rs.getInt(3)));
+        }
+
+        for (ChatRoom room : chatRooms) {
+            room.setMembers(findMembersByChatName(room.getRoomName()));
+        }
+
+        return chatRooms;
+    }
 }

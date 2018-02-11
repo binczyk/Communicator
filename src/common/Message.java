@@ -17,6 +17,7 @@ public class Message {
     private int from;
     private int to;
     private String content;
+    private String type;
 
     public Message(Timestamp sent, Timestamp read, int from, int to, String content) {
         this.sent = sent;
@@ -29,6 +30,16 @@ public class Message {
     public Message(int id, Timestamp sent, Timestamp read, int from, int to, String content) {
         this(sent, read, from, to, content);
         this.id = id;
+    }
+
+    public Message(int id, Timestamp sent, Timestamp read, int from, int to, String content, String type) {
+        this(id, sent, read, from, to, content);
+        this.type = type;
+    }
+
+    public Message(Timestamp sent, Timestamp read, int from, int to, String content, String type) {
+        this(sent, read, from, to, content);
+        this.type = type;
     }
 
     public Timestamp getSent() {
@@ -54,5 +65,8 @@ public class Message {
     public int getId() {
         return id;
     }
-}
-;
+
+    public String getType() {
+        return type;
+    }
+};

@@ -128,7 +128,7 @@ public class Server implements Runnable {
             /*
                 interpretation of a command/data sent from clients
             */
-                if (s.charAt(0) == '/') {
+                if (!s.trim().isEmpty() && s.charAt(0) == '/') {
                     StringTokenizer st = new StringTokenizer(s);
                     String cmd = st.nextToken();
                     switch (cmd) {
@@ -145,8 +145,8 @@ public class Server implements Runnable {
                                         out.println("/succesful");
                                         out.println("Welcome on the board, " + user);
                                         getAvailableChats();
-                                        fetchMessages();
                                         fetchFriends();
+                                        fetchMessages();
                                     }
                                 } catch (NumberFormatException ex) {
                                     out.println("/err Non-integer user id used");
@@ -322,6 +322,7 @@ public class Server implements Runnable {
                                 String roomName = st.nextToken();
                                 if (!chatRooms.containsKey(roomName)) {
                                     chatRooms.put(roomName, new ChatRoom(roomName, login));
+                                    db.addChat(roomName, login);
                                     out.println("New room created " + roomName);
                                 } else {
                                     out.println("Room " + roomName + " already exists");
@@ -336,6 +337,7 @@ public class Server implements Runnable {
                                     while (st.hasMoreElements()) {
                                         int member = Integer.parseInt(st.nextToken());
                                         chatRooms.get(roomName).addMember(member);
+                                        db.addMember(roomName, member, false);
                                         out.println("New member added " + member);
                                     }
                                     updateRooms(roomName);
@@ -388,11 +390,22 @@ public class Server implements Runnable {
                                     try {
                                         db.addFriendship(login, friendId);
                                         sendMessageToUser("/from", friendId, user.getFirstName().concat(" ").concat(user.getLastName())
-                                                .concat(" want to add you to friends list. Do you agree(yes, no)?"));
+                                                .concat(" want to add you to friends list. Do you agree(yes, no)?"), "user");
                                     } catch (SQLException e1) {
                                         e1.printStackTrace();
                                     }
                                 }
+                            }
+                            break;
+                        case "/from":
+                            if (st.hasMoreTokens()) {
+                                StringBuilder stringBuilder = new StringBuilder("/from ");
+                                String userId = st.nextToken();
+                                while (st.hasMoreTokens()) {
+                                    stringBuilder.append(st.nextToken());
+                                    stringBuilder.append(" ");
+                                }
+                                out.println(stringBuilder.toString().trim());
                             }
                             break;
                         case "/help":
@@ -409,11 +422,11 @@ public class Server implements Runnable {
                     }
                 } else {
                     if (login > 0) {
-                        if (sendTo > 0) {
-                            sendMessageToUser("/from", sendTo, s);
+                        if (sendTo > 0 && !s.trim().isEmpty()) {
+                            sendMessageToUser("/from", sendTo, s, "user");
                         } else if (!sendToRoom.isEmpty()) {
                             for (int memberId : chatRooms.get(sendToRoom).getMembers()) {
-                                sendMessageToUser("/from ".concat(sendToRoom).concat(" "), memberId, s);
+                                sendMessageToUser("/from ".concat(sendToRoom).concat(" "), memberId, s, "chat");
                             }
                         } else {
                             out.println("You should set default recipient");
@@ -427,6 +440,8 @@ public class Server implements Runnable {
                 IOException e)
 
         {
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
         servers.remove(this);
         try
@@ -466,7 +481,8 @@ public class Server implements Runnable {
     }
 
     private List<Message> fetchMessages() throws SQLException {
-        List<Message> newMessages = db.getNotReadMessages(login);
+        List<Message> newMessages = db.getNotReadMessages(login, "user");
+        newMessages.addAll(db.getNotReadMessages(login, "chat"));
         for (Message msg : newMessages) {
             out.println(msg.getContent());
             db.markMessageAsRead(msg.getId());
@@ -474,15 +490,15 @@ public class Server implements Runnable {
         return newMessages;
     }
 
-    private void sendMessageToUser(String type, int sendToId, String message) {
+    private void sendMessageToUser(String type, int sendToId, String message, String reciverType) {
         try {
-            Message msg = new Message(new Timestamp(System.currentTimeMillis()), null, login, sendToId, message);
+            Message msg = new Message(new Timestamp(System.currentTimeMillis()), null, login, sendToId, message, reciverType);
             int msgId = db.saveMessage(msg);
             int count = 0;
             for (Server server : servers) {
                 if (sendToId == server.login) {
                     synchronized (sock) {
-                        server.out.println(type.concat(String.valueOf(login)).concat("\n").concat(message));
+                        server.out.println(type.concat(" ").concat(String.valueOf(login)).concat("\n").concat(message));
                     }
                     count++;
                     if (count == 1) {
@@ -516,13 +532,16 @@ public class Server implements Runnable {
     }
 
     private void getAvailableChats() {
-        for (Server server : servers) {
-            for (Map.Entry<String, ChatRoom> room : server.chatRooms.entrySet()) {
-                if (room.getValue().getMembers().contains(login)) {
-                    chatRooms.put(room.getKey(), room.getValue());
-                }
+        StringBuilder sb = new StringBuilder("/friends ");
+        try {
+            for (ChatRoom chatRoom : db.findChatByUserId(login)) {
+                chatRooms.put(chatRoom.getRoomName(), chatRoom);
+                sb.append(chatRoom.getRoomName().concat("(chat);"));
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+        out.println(sb.toString().trim());
     }
 
 }

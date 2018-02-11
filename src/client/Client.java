@@ -5,6 +5,7 @@
  */
 package client;
 
+import frontend.ChatView;
 import frontend.FriendList;
 import frontend.LoginPanel;
 import server.Server;
@@ -16,9 +17,7 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.file.FileSystemException;
-import java.util.ArrayList;
-import java.util.Properties;
-import java.util.StringTokenizer;
+import java.util.*;
 
 /**
  * @author Mariusz
@@ -44,6 +43,7 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
     private BufferedReader in = null;
     private LoginPanel loginPanel;
     private FriendList friendList;
+    private Map<String, ChatView> chats = new HashMap<>();
 
     public Client(String title) {
         super(title);
@@ -276,18 +276,31 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                     System.exit(0);
                 } else if (s.equalsIgnoreCase("/succesful")) {
                     mainWindow.setVisible(false);
-                    mainWindow.loginPanel.setVisible(false);
-                    friendList = new FriendList(out);
-                    friendList.init();
                     mainWindow.setVisible(true);
+                    mainWindow.loginPanel.setVisible(false);
+                    friendList = new FriendList(out, Integer.parseInt(loginPanel.getUserLogin()));
+                    friendList.init();
                 }
                 if (!s.isEmpty() && s.charAt(0) == '/') {
                     StringTokenizer st = new StringTokenizer(s);
                     String cmd = st.nextToken();
                     switch (cmd) {
                         case "/from":
-                            String from = st.hasMoreTokens() ? st.nextToken() : null;
-                            printlnToPanel("← Message sent from " + from);
+                            if (st.hasMoreTokens()) {
+                                String from = st.nextToken();
+                                if (!from.equalsIgnoreCase(loginPanel.getUserLogin())) {
+                                    StringBuilder sb = new StringBuilder(String.valueOf(from));
+                                    sb.append(loginPanel.getUserLogin());
+                                    if (chats.containsKey(sb.toString()) || chats.containsKey(sb.reverse().toString())) {
+                                        chats.get(sb.toString()).setVisible(true);
+                                        chats.get(sb.toString()).addMessage(from.concat(": ").concat(getMessage(st)));
+                                    } else {
+                                        chats.put(sb.toString(), new ChatView(out, Integer.parseInt(loginPanel.getUserLogin())));
+                                        chats.get(sb.toString()).init(from);
+                                        chats.get(sb.toString()).addMessage(from.concat(": ").concat(getMessage(st)));
+                                    }
+                                }
+                            }
                             break;
                         case "/uploadready":
                             synchronized (mainWindow) {
@@ -369,9 +382,26 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                 }
             }
         }
+
     }
 
-    private void connect() throws IOException {
+    private String getMessage(StringTokenizer st) {
+        StringBuilder stringBuilder = new StringBuilder();
+        while (st.hasMoreTokens()) {
+            stringBuilder.append(st.nextToken().concat(" "));
+        }
+        return stringBuilder.toString();
+    }
+
+    public PrintWriter getOut() {
+        return out;
+    }
+
+    public BufferedReader getIn() {
+        return in;
+    }
+
+    public void connect() throws IOException {
         setTitle("Connecting to " + connectTo);
         sock = new Socket(addr.getHostName(), port);
         out = new PrintWriter(sock.getOutputStream(), true);
