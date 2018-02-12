@@ -17,6 +17,7 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.file.FileSystemException;
+import java.sql.SQLException;
 import java.util.*;
 
 /**
@@ -45,7 +46,7 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
     private FriendList friendList;
     private Map<String, ChatView> chats = new HashMap<>();
 
-    public Client(String title) {
+    public Client(String title) throws IOException, SQLException {
         super(title);
         Client self = this;
         setSize(500, 400);
@@ -86,7 +87,7 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
         JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.ERROR_MESSAGE);
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException, SQLException {
 
         mainWindow = new Client("Communicator client");
 
@@ -295,6 +296,7 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                                         chats.get(sb.toString()).setVisible(true);
                                         chats.get(sb.toString()).addMessage(from.concat(": ").concat(getMessage(st)));
                                     } else {
+                                        out.println("/to user ".concat(from));
                                         chats.put(sb.toString(), new ChatView(out, Integer.parseInt(loginPanel.getUserLogin())));
                                         chats.get(sb.toString()).init(from);
                                         chats.get(sb.toString()).addMessage(from.concat(": ").concat(getMessage(st)));

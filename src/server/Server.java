@@ -406,7 +406,6 @@ public class Server implements Runnable {
                         case "/from":
                             if (st.hasMoreTokens()) {
                                 StringBuilder stringBuilder = new StringBuilder("/from ");
-                                String userId = st.nextToken();
                                 while (st.hasMoreTokens()) {
                                     stringBuilder.append(st.nextToken());
                                     stringBuilder.append(" ");
@@ -539,7 +538,7 @@ public class Server implements Runnable {
             for (Server server : servers) {
                 if (sendToId == server.login) {
                     synchronized (sock) {
-                        server.out.println(type.concat(" ").concat(String.valueOf(login)).concat("\n").concat(message));
+                        server.out.println(type.concat(" ").concat(String.valueOf(login)).concat(" ").concat(message));
                     }
                     count++;
                     if (count == 1) {

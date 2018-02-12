@@ -14,6 +14,7 @@ public class FriendList extends JFrame {
     private JButton chatButton;
     private JScrollPane friendScroll;
     private int userID;
+    private ChatView chatView;
 
     public void init() {
         setTitle("Znajomi");
@@ -44,14 +45,15 @@ public class FriendList extends JFrame {
                     }
                     printWriterOut.println("/addChatMember " + addNewMembers);
                     printWriterOut.println("/to room " + chatName);
-                    ChatView chatView = new ChatView(printWriterOut, userID);
+                    chatView = new ChatView(printWriterOut, userID);
                     chatView.init(chatName);
                 } else if (selectedValuesList.size() == 1) {
                     stringTokenizer = new StringTokenizer(selectedValuesList.get(0));
                     int toUserId = Integer.parseInt(stringTokenizer.nextToken());
                     printWriterOut.println("/to user " + toUserId);
-                    ChatView chatView = new ChatView(printWriterOut, userID);
-                    chatView.init(String.valueOf(toUserId));
+                    printWriterOut.println("/from " + toUserId);
+                    /*chatView = new ChatView(printWriterOut, userID);
+                    chatView.init(stringTokenizer.nextToken() + " " + stringTokenizer.nextToken());*/
                 } else {
                     JOptionPane.showMessageDialog(null, "No user seleced");
                 }
@@ -85,6 +87,10 @@ public class FriendList extends JFrame {
         }
 
         friendList.setModel(listModel);
+    }
+
+    public ChatView getChatView() {
+        return chatView;
     }
 
     {

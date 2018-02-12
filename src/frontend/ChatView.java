@@ -23,7 +23,7 @@ public class ChatView extends JFrame implements ActionListener, KeyListener, Win
                 if (!inputChatField.getText().trim().isEmpty()) {
                     String msg = inputChatField.getText().concat("\n");
                     chatText.append("← ".concat(String.valueOf(userId).concat(": ")).concat(msg));
-                    printWriterOut.println("/from ".concat(String.valueOf(userId)).concat(" ").concat(msg));
+                    printWriterOut.println(msg);
                     inputChatField.setText("");
                 }
             }
@@ -41,7 +41,7 @@ public class ChatView extends JFrame implements ActionListener, KeyListener, Win
     }
 
     public void init(String title) {
-        setTitle("Chat: " + title);
+        setTitle(title);
         setContentPane(chatPanel);
         setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         pack();
