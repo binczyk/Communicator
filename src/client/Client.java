@@ -297,7 +297,7 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                                         chats.get(sb.toString()).addMessage(from.concat(": ").concat(getMessage(st)));
                                     } else {
                                         out.println("/to user ".concat(from));
-                                        chats.put(sb.toString(), new ChatView(out, Integer.parseInt(loginPanel.getUserLogin())));
+                                        chats.put(sb.toString(), new ChatView(out, Integer.parseInt(loginPanel.getUserLogin()), Integer.parseInt(from)));
                                         chats.get(sb.toString()).init(from);
                                         chats.get(sb.toString()).addMessage(from.concat(": ").concat(getMessage(st)));
                                     }

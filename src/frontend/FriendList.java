@@ -45,15 +45,13 @@ public class FriendList extends JFrame {
                     }
                     printWriterOut.println("/addChatMember " + addNewMembers);
                     printWriterOut.println("/to room " + chatName);
-                    chatView = new ChatView(printWriterOut, userID);
+                    chatView = new ChatView(printWriterOut, userID, chatName);
                     chatView.init(chatName);
                 } else if (selectedValuesList.size() == 1) {
                     stringTokenizer = new StringTokenizer(selectedValuesList.get(0));
                     int toUserId = Integer.parseInt(stringTokenizer.nextToken());
                     printWriterOut.println("/to user " + toUserId);
                     printWriterOut.println("/from " + toUserId);
-                    /*chatView = new ChatView(printWriterOut, userID);
-                    chatView.init(stringTokenizer.nextToken() + " " + stringTokenizer.nextToken());*/
                 } else {
                     JOptionPane.showMessageDialog(null, "No user seleced");
                 }

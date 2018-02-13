@@ -12,17 +12,16 @@ public class ChatView extends JFrame implements ActionListener, KeyListener, Win
     private JTextArea chatText;
     private JScrollPane textScroll;
     private PrintWriter printWriterOut;
-    private int userId;
 
-    public ChatView(PrintWriter printWriterOut, int userId) {
+    public ChatView(PrintWriter printWriterOut, int fromUserId, int toUserId) {
         this.printWriterOut = printWriterOut;
-        this.userId = userId;
         sendbutton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (!inputChatField.getText().trim().isEmpty()) {
                     String msg = inputChatField.getText().concat("\n");
-                    chatText.append("← ".concat(String.valueOf(userId).concat(": ")).concat(msg));
+                    chatText.append("← ".concat(String.valueOf(fromUserId).concat(": ")).concat(msg));
+                    printWriterOut.println("/to user " + toUserId);
                     printWriterOut.println(msg);
                     inputChatField.setText("");
                 }
@@ -39,6 +38,33 @@ public class ChatView extends JFrame implements ActionListener, KeyListener, Win
             }
         });
     }
+
+    public ChatView(PrintWriter printWriterOut, int fromUserId, String roomName) {
+        this.printWriterOut = printWriterOut;
+        sendbutton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!inputChatField.getText().trim().isEmpty()) {
+                    String msg = inputChatField.getText().concat("\n");
+                    chatText.append("← ".concat(String.valueOf(fromUserId).concat(": ")).concat(msg));
+                    printWriterOut.println("/to room " + roomName);
+                    printWriterOut.println(msg);
+                    inputChatField.setText("");
+                }
+            }
+        });
+        inputChatField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_ENTER:
+                        sendbutton.doClick();
+                        break;
+                }
+            }
+        });
+    }
+
 
     public void init(String title) {
         setTitle(title);
