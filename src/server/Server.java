@@ -331,6 +331,18 @@ public class Server implements Runnable {
 
                             }
                             break;
+                        case "/selectOption":
+                            if (st.hasMoreElements()) {
+                                String firstToken = st.nextToken();
+                                String rest = firstToken.concat(" ").concat(getRoomName(st));
+                                if (db.userExists(firstToken)) {
+                                    out.println("/user ".concat(rest));
+                                } else if (db.chatExists(rest)) {
+                                    out.println("/room ".concat(rest));
+                                }
+
+                            }
+                            break;
                         case "/addChatMember":
                             if (st.hasMoreElements()) {
                                 String roomName = getRoomName(st);
@@ -465,6 +477,15 @@ public class Server implements Runnable {
 
     }
 
+    private String getRest(StringTokenizer st) {
+        StringBuilder builder = new StringBuilder();
+        while (st.hasMoreTokens()) {
+            builder.append(st.nextToken());
+            builder.append(" ");
+        }
+        return builder.toString().trim();
+    }
+
     private String getRoomName(StringTokenizer st) {
         StringBuilder roomName = new StringBuilder();
         while (st.hasMoreTokens()) {
@@ -504,7 +525,7 @@ public class Server implements Runnable {
         try {
             for (ChatRoom chatRoom : db.findChatByUserId(login)) {
                 chatRooms.put(chatRoom.getRoomName(), chatRoom);
-                sb.append(chatRoom.getRoomName().concat("(chat);"));
+                sb.append(chatRoom.getRoomName().concat(";"));
             }
         } catch (SQLException e) {
             e.printStackTrace();

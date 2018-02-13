@@ -364,6 +364,19 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                                 friendList.addFriends(s.substring("/friends ".length(), s.length() - 1));
                             }
                             break;
+                        case "/user":
+                            if (st.hasMoreTokens()) {
+                                String toUser = st.nextToken();
+                                out.println("/to user " + toUser);
+                                out.println("/from " + toUser);
+                            }
+                            break;
+                        case "/room":
+                            if (st.hasMoreTokens()) {
+                                out.println("/to room " + getRoomName(st));
+                                out.println("/from " + loginPanel.getUserLogin());
+                            }
+                            break;
                         case "/err":
                             StringBuilder errMsg = new StringBuilder("Server said: ");
                             while (st.hasMoreTokens()) {
@@ -385,6 +398,16 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
             }
         }
 
+    }
+
+    private String getRoomName(StringTokenizer st) {
+        StringBuilder builder = new StringBuilder();
+
+        while (st.hasMoreTokens()) {
+            builder.append(st.nextToken());
+            builder.append(" ");
+        }
+        return builder.toString().trim();
     }
 
     private String getMessage(StringTokenizer st) {

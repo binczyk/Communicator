@@ -48,10 +48,16 @@ public class FriendList extends JFrame {
                     chatView = new ChatView(printWriterOut, userID, chatName);
                     chatView.init(chatName);
                 } else if (selectedValuesList.size() == 1) {
-                    stringTokenizer = new StringTokenizer(selectedValuesList.get(0));
-                    int toUserId = Integer.parseInt(stringTokenizer.nextToken());
-                    printWriterOut.println("/to user " + toUserId);
-                    printWriterOut.println("/from " + toUserId);
+
+                    printWriterOut.println("/selectOption " + selectedValuesList.get(0));
+
+
+                        /*stringTokenizer = new StringTokenizer(selectedValuesList.get(0));
+                        int toUserId = Integer.parseInt(stringTokenizer.nextToken());
+                        printWriterOut.println("/to user " + toUserId);
+                        printWriterOut.println("/from " + toUserId);*/
+
+
                 } else {
                     JOptionPane.showMessageDialog(null, "No user seleced");
                 }

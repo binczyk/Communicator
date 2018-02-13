@@ -116,6 +116,18 @@ public final class Database {
         return new User(rs.getString(1), rs.getString(2), rs.getString(3));
     }
 
+    public boolean userExists(String id) throws SQLException {
+        try {
+            PreparedStatement st = dbConn.prepareStatement("SELECT count(*) FROM \"user\" WHERE id=?");
+            st.setInt(1, Integer.parseInt(id));
+            ResultSet rs = st.executeQuery();
+            rs.next();
+            return rs.getInt(1) == 0 ? false : true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
     public Set<Integer> getUserIds(String pattern) throws SQLException {
         Set<Integer> userIds = new HashSet<>();
         PreparedStatement st = dbConn.prepareStatement("SELECT id FROM \"user\" WHERE firstName LIKE ? OR lastName LIKE ?");
@@ -344,5 +356,14 @@ public final class Database {
         }
 
         return chatRooms;
+    }
+
+    public boolean chatExists(String chatName) throws SQLException {
+        if (chatName.isEmpty()) return false;
+        PreparedStatement st = dbConn.prepareStatement("SELECT count(*) FROM \"chat\" WHERE name=?");
+        st.setString(1, chatName);
+        ResultSet rs = st.executeQuery();
+        rs.next();
+        return rs.getInt(1) == 0 ? false : true;
     }
 }
