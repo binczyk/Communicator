@@ -20,6 +20,8 @@ import java.nio.file.FileSystemException;
 import java.sql.SQLException;
 import java.util.*;
 
+import static common.Utils.getRoomName;
+
 /**
  * @author Mariusz
  */
@@ -288,19 +290,36 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                     switch (cmd) {
                         case "/from":
                             if (st.hasMoreTokens()) {
+                                String type = st.nextToken();
                                 String from = st.nextToken();
-                                if (!from.equalsIgnoreCase(loginPanel.getUserLogin())) {
-                                    StringBuilder sb = new StringBuilder(String.valueOf(from));
-                                    sb.append(loginPanel.getUserLogin());
-                                    if (chats.containsKey(sb.toString()) || chats.containsKey(sb.reverse().toString())) {
-                                        chats.get(sb.toString()).setVisible(true);
-                                        chats.get(sb.toString()).addMessage(from.concat(": ").concat(getMessage(st)));
-                                    } else {
-                                        out.println("/to user ".concat(from));
-                                        chats.put(sb.toString(), new ChatView(out, Integer.parseInt(loginPanel.getUserLogin()), Integer.parseInt(from)));
-                                        chats.get(sb.toString()).init(from);
-                                        chats.get(sb.toString()).addMessage(from.concat(": ").concat(getMessage(st)));
-                                    }
+                                switch (type) {
+                                    case "user":
+                                        if (!from.equalsIgnoreCase(loginPanel.getUserLogin())) {
+                                            StringBuilder sb = new StringBuilder(String.valueOf(from));
+                                            sb.append(loginPanel.getUserLogin());
+                                            if (chats.containsKey(sb.toString()) || chats.containsKey(sb.reverse().toString())) {
+                                                chats.get(sb.toString()).setVisible(true);
+                                                chats.get(sb.toString()).addMessage(from.concat(": ").concat(getMessage(st)));
+                                            } else {
+                                                //out.println("/to user ".concat(from));
+                                                chats.put(sb.toString(), new ChatView(out, Integer.parseInt(loginPanel.getUserLogin()), from, "user"));
+                                                chats.get(sb.toString()).init(from);
+                                                chats.get(sb.toString()).addMessage(from.concat(": ").concat(getMessage(st)));
+                                            }
+                                        }
+                                        break;
+                                    case "chat":
+                                        String roomName = from.concat(" ").concat(getRoomName(st));
+                                        if (chats.containsKey(roomName)) {
+                                            chats.get(roomName).setVisible(true);
+                                            chats.get(roomName).addMessage(roomName.concat(": ").concat(getMessage(st)));
+                                        } else {
+                                            chats.put(roomName, new ChatView(out, Integer.parseInt(loginPanel.getUserLogin()), roomName, "room"));
+                                            chats.get(roomName).init(roomName);
+                                            chats.get(roomName).addMessage(roomName.concat(": ").concat(getMessage(st)));
+
+                                        }
+                                        break;
                                 }
                             }
                             break;
@@ -368,13 +387,14 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                             if (st.hasMoreTokens()) {
                                 String toUser = st.nextToken();
                                 out.println("/to user " + toUser);
-                                out.println("/from " + toUser);
+                                out.println("/from user " + toUser);
                             }
                             break;
                         case "/room":
                             if (st.hasMoreTokens()) {
-                                out.println("/to room " + getRoomName(st));
-                                out.println("/from " + loginPanel.getUserLogin());
+                                String roomName = getRoomName(st);
+                                out.println("/to room " + roomName.concat("</>"));
+                                out.println("/from chat " + roomName.concat("</>"));
                             }
                             break;
                         case "/err":
@@ -398,16 +418,6 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
             }
         }
 
-    }
-
-    private String getRoomName(StringTokenizer st) {
-        StringBuilder builder = new StringBuilder();
-
-        while (st.hasMoreTokens()) {
-            builder.append(st.nextToken());
-            builder.append(" ");
-        }
-        return builder.toString().trim();
     }
 
     private String getMessage(StringTokenizer st) {

@@ -13,7 +13,7 @@ public class ChatView extends JFrame implements ActionListener, KeyListener, Win
     private JScrollPane textScroll;
     private PrintWriter printWriterOut;
 
-    public ChatView(PrintWriter printWriterOut, int fromUserId, int toUserId) {
+    public ChatView(PrintWriter printWriterOut, int fromUserId, String to, String type) {
         this.printWriterOut = printWriterOut;
         sendbutton.addActionListener(new ActionListener() {
             @Override
@@ -21,7 +21,7 @@ public class ChatView extends JFrame implements ActionListener, KeyListener, Win
                 if (!inputChatField.getText().trim().isEmpty()) {
                     String msg = inputChatField.getText().concat("\n");
                     chatText.append("← ".concat(String.valueOf(fromUserId).concat(": ")).concat(msg));
-                    printWriterOut.println("/to user " + toUserId);
+                    printWriterOut.println("/to " + type + " " + to);
                     printWriterOut.println(msg);
                     inputChatField.setText("");
                 }
@@ -64,7 +64,6 @@ public class ChatView extends JFrame implements ActionListener, KeyListener, Win
             }
         });
     }
-
 
     public void init(String title) {
         setTitle(title);

@@ -23,6 +23,8 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 
+import static common.Utils.getRoomName;
+
 /**
  * @author Mariusz
  */
@@ -408,7 +410,7 @@ public class Server implements Runnable {
                                     try {
                                         db.addFriendship(login, friendId);
                                         sendMessageToUser("/from", friendId, user.getFirstName().concat(" ").concat(user.getLastName())
-                                                .concat(" want to add you to friends list. Do you agree(yes, no)?"), "user");
+                                                .concat(" want to add you to friends list. Do you agree(yes, no)?"), "user", String.valueOf(login));
                                     } catch (SQLException e1) {
                                         e1.printStackTrace();
                                     }
@@ -441,10 +443,10 @@ public class Server implements Runnable {
                 } else {
                     if (login > 0) {
                         if (sendTo > 0 && !s.trim().isEmpty()) {
-                            sendMessageToUser("/from", sendTo, s, "user");
+                            sendMessageToUser("/from", sendTo, s, "user", String.valueOf(login));
                         } else if (!sendToRoom.isEmpty()) {
                             for (int memberId : chatRooms.get(sendToRoom).getMembers()) {
-                                sendMessageToUser("/from ".concat(sendToRoom).concat(" "), memberId, s, "chat");
+                                sendMessageToUser("/from", memberId, s, "chat", sendToRoom.concat("</>"));
                             }
                         } else {
                             out.println("You should set default recipient");
@@ -484,20 +486,6 @@ public class Server implements Runnable {
             builder.append(" ");
         }
         return builder.toString().trim();
-    }
-
-    private String getRoomName(StringTokenizer st) {
-        StringBuilder roomName = new StringBuilder();
-        while (st.hasMoreTokens()) {
-            roomName.append(st.nextToken());
-            if (roomName.toString().contains("</>")) {
-                int indexOfEnd = roomName.indexOf("</>");
-                roomName.replace(indexOfEnd, indexOfEnd + 3, "");
-                break;
-            }
-            roomName.append(" ");
-        }
-        return roomName.toString().trim();
     }
 
     private void notifyFriends() throws SQLException {
@@ -551,7 +539,7 @@ public class Server implements Runnable {
         return newMessages;
     }
 
-    private void sendMessageToUser(String type, int sendToId, String message, String reciverType) {
+    private void sendMessageToUser(String type, int sendToId, String message, String reciverType, String senderLogin) {
         try {
             Message msg = new Message(new Timestamp(System.currentTimeMillis()), null, login, sendToId, message, reciverType);
             int msgId = db.saveMessage(msg);
@@ -559,7 +547,7 @@ public class Server implements Runnable {
             for (Server server : servers) {
                 if (sendToId == server.login) {
                     synchronized (sock) {
-                        server.out.println(type.concat(" ").concat(String.valueOf(login)).concat(" ").concat(message));
+                        server.out.println(type.concat(" ").concat(reciverType).concat(" ").concat(senderLogin).concat(" ").concat(message));
                     }
                     count++;
                     if (count == 1) {
