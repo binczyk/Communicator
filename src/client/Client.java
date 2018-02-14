@@ -292,32 +292,36 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                             if (st.hasMoreTokens()) {
                                 String type = st.nextToken();
                                 String from = st.nextToken();
+                                String message;
                                 switch (type) {
                                     case "user":
+                                        message = getMessage(st);
                                         if (!from.equalsIgnoreCase(loginPanel.getUserLogin())) {
                                             StringBuilder sb = new StringBuilder(String.valueOf(from));
                                             sb.append(loginPanel.getUserLogin());
                                             if (chats.containsKey(sb.toString()) || chats.containsKey(sb.reverse().toString())) {
                                                 chats.get(sb.toString()).setVisible(true);
-                                                chats.get(sb.toString()).addMessage(from.concat(": ").concat(getMessage(st)));
                                             } else {
                                                 //out.println("/to user ".concat(from));
                                                 chats.put(sb.toString(), new ChatView(out, Integer.parseInt(loginPanel.getUserLogin()), from, "user"));
                                                 chats.get(sb.toString()).init(from);
-                                                chats.get(sb.toString()).addMessage(from.concat(": ").concat(getMessage(st)));
+                                            }
+                                            if (!message.trim().isEmpty()) {
+                                                chats.get(sb.toString()).addMessage(from.concat(": ").concat(message));
                                             }
                                         }
                                         break;
                                     case "chat":
                                         String roomName = from.concat(" ").concat(getRoomName(st));
+                                        message = getMessage(st);
                                         if (chats.containsKey(roomName)) {
                                             chats.get(roomName).setVisible(true);
-                                            chats.get(roomName).addMessage(roomName.concat(": ").concat(getMessage(st)));
                                         } else {
                                             chats.put(roomName, new ChatView(out, Integer.parseInt(loginPanel.getUserLogin()), roomName, "room"));
                                             chats.get(roomName).init(roomName);
-                                            chats.get(roomName).addMessage(roomName.concat(": ").concat(getMessage(st)));
-
+                                        }
+                                        if (!message.substring(message.indexOf(":") + 1).trim().isEmpty()) {
+                                            chats.get(roomName).addMessage(message);
                                         }
                                         break;
                                 }

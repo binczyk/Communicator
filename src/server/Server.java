@@ -446,7 +446,9 @@ public class Server implements Runnable {
                             sendMessageToUser("/from", sendTo, s, "user", String.valueOf(login));
                         } else if (!sendToRoom.isEmpty()) {
                             for (int memberId : chatRooms.get(sendToRoom).getMembers()) {
-                                sendMessageToUser("/from", memberId, s, "chat", sendToRoom.concat("</>"));
+                                if (memberId != login) {
+                                    sendMessageToUser("/from", memberId, String.valueOf(login).concat(" : ").concat(s), "chat", sendToRoom.concat("</>"));
+                                }
                             }
                         } else {
                             out.println("You should set default recipient");
