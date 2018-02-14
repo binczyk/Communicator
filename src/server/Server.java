@@ -410,7 +410,7 @@ public class Server implements Runnable {
                                     try {
                                         db.addFriendship(login, friendId);
                                         sendMessageToUser("/from", friendId, user.getFirstName().concat(" ").concat(user.getLastName())
-                                                .concat(" want to add you to friends list. Do you agree(yes, no)?"), "user", String.valueOf(login));
+                                                .concat(" Please add me to your friends."), "user", String.valueOf(login));
                                     } catch (SQLException e1) {
                                         e1.printStackTrace();
                                     }
