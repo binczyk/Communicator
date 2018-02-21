@@ -13,6 +13,7 @@ public class FriendList extends JFrame {
     private JPanel friendPanel;
     private JButton chatButton;
     private JScrollPane friendScroll;
+    public JButton consoleButton;
     private int userID;
     private ChatView chatView;
 
@@ -52,6 +53,12 @@ public class FriendList extends JFrame {
                 } else {
                     JOptionPane.showMessageDialog(null, "No user seleced");
                 }
+            }
+        });
+        consoleButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                printWriterOut.println("/showConsole");
             }
         });
     }
@@ -104,7 +111,7 @@ public class FriendList extends JFrame {
      */
     private void $$$setupUI$$$() {
         friendPanel = new JPanel();
-        friendPanel.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(2, 1, new Insets(25, 25, 25, 25), -1, -1));
+        friendPanel.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(3, 1, new Insets(25, 25, 25, 25), -1, -1));
         friendPanel.setMaximumSize(new Dimension(2147483647, 2147483647));
         friendPanel.setMinimumSize(new Dimension(200, 400));
         friendPanel.setPreferredSize(new Dimension(300, 600));
@@ -117,6 +124,9 @@ public class FriendList extends JFrame {
         chatButton = new JButton();
         chatButton.setText("Chat");
         friendPanel.add(chatButton, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        consoleButton = new JButton();
+        consoleButton.setText("Console");
+        friendPanel.add(consoleButton, new com.intellij.uiDesigner.core.GridConstraints(2, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
     }
 
     /**

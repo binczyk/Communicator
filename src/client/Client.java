@@ -52,7 +52,7 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
         super(title);
         Client self = this;
         setSize(500, 400);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         Container interior = getContentPane();
         interior.setLayout(new BorderLayout());
         JMenuBar menu = new JMenuBar();
@@ -278,8 +278,6 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                     JOptionPane.showMessageDialog(null, "Connection closed by the server");
                     System.exit(0);
                 } else if (s.equalsIgnoreCase("/succesful")) {
-                    mainWindow.setVisible(false);
-                    mainWindow.setVisible(true);
                     mainWindow.loginPanel.setVisible(false);
                     friendList = new FriendList(out, Integer.parseInt(loginPanel.getUserLogin()));
                     friendList.init();
@@ -333,6 +331,9 @@ public class Client extends JFrame implements ActionListener, KeyListener, Windo
                                 printlnToPanel("← Upload initiated, destination " + uploadedFileName);
                                 mainWindow.notify();
                             }
+                            break;
+                        case "/showConsole":
+                            mainWindow.setVisible(!mainWindow.isVisible());
                             break;
                         case "/uploadcomplete":
                             String uuid = st.hasMoreTokens() ? st.nextToken() : null;

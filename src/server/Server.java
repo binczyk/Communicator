@@ -403,19 +403,29 @@ public class Server implements Runnable {
                             }
                             break;
                         case "/addFriend":
+                            //todo poprawić mechanikę dodawania nowych znajomych, tak aby lista się odświeżała
                             if (st.hasMoreTokens()) {
                                 String nextToken = st.nextToken();
                                 int friendId = Integer.parseInt(nextToken);
                                 if (user != null) {
                                     try {
-                                        db.addFriendship(login, friendId);
-                                        sendMessageToUser("/from", friendId, user.getFirstName().concat(" ").concat(user.getLastName())
-                                                .concat(" Please add me to your friends."), "user", String.valueOf(login));
+                                        if (!db.isFriend(friendId, login)) {
+                                            db.addFriendship(login, friendId);
+                                            sendMessageToUser("/from", friendId, user.getFirstName().concat(" ").concat(user.getLastName())
+                                                    .concat(" Please add me to your friends."), "user", String.valueOf(login));
+                                        } else {
+                                            db.addFriendship(login, friendId);
+                                            out.println("User " + friendId + " accepted your invitation");
+                                            out.println("/friends");
+                                        }
                                     } catch (SQLException e1) {
                                         e1.printStackTrace();
                                     }
                                 }
                             }
+                            break;
+                        case "/showConsole":
+                            out.println("/showConsole");
                             break;
                         case "/from":
                             if (st.hasMoreTokens()) {
